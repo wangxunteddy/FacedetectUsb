@@ -88,7 +88,7 @@ public class IdcardFdv {
         else{
             // register
             IdcardFdvRegister.RegisterManager manager = new IdcardFdvRegister.RegisterManager();
-            String registerUrl = "https://" + ip + ":" + port + "/registerproduct";
+            String registerUrl = "http://" + ip + ":" + port + "/registerproduct";
             manager.setRegisterUrl(registerUrl);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();

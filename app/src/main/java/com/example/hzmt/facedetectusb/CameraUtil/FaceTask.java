@@ -63,9 +63,11 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
     private byte[] mData;
     private Camera mCamera;
     private int mCameraIdx;
+    private InfoLayout mInfoLayout;
     private ImageView mImgView;
     private SurfaceDraw mSurface;
     private SurfaceView mCameraView;
+    private Bitmap mFullPreviewBm;
     private Bitmap mScreenBm;
     private Bitmap mSendBm;
     private byte[] mSendRawImage;
@@ -74,12 +76,12 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
 
     //构造函数
     FaceTask(Activity activity, byte[] data, int cameraId, Camera camera,
-             ImageView imgview, SurfaceDraw surface, SurfaceView cameraview){
+             InfoLayout infoL, SurfaceDraw surface, SurfaceView cameraview){
         super();
         this.mActivity = activity;
         this.mData = data;
         this.mCamera = camera;
-        this.mImgView = imgview;
+        this.mInfoLayout = infoL;
         this.mSurface = surface;
         this.mCameraView = cameraview;
         this.mCameraIdx = cameraId;
@@ -105,11 +107,38 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                 null);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         yuvimage.compressToJpeg(
-                new Rect(0, 0, previewSize.width, previewSize.height),
+                new Rect(0,
+                        0,
+                        previewSize.width,
+                        previewSize.height),
                 80,
                 baos);
         byte[] rawImage =baos.toByteArray();
-        mScreenBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 4);
+        mFullPreviewBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
+        int cwidth = CameraActivityData.CameraActivity_width - mInfoLayout.getInfoLayoutWidth();
+        // 保持宽高比时:
+        //cwidth = cwidth * fullPreviewBm.getHeight() / CameraActivityData.CameraActivity_height;
+        // 宽拉伸全屏时:
+        cwidth = cwidth * mFullPreviewBm.getWidth() / CameraActivityData.CameraActivity_width;
+
+        cwidth = (cwidth+1)/2*2; // 需确保用于人脸检测的图尺寸为偶数
+        if(mFullPreviewBm.getWidth() - cwidth < 0) {
+            // 避免负值错误
+            // 保持宽高比且信息面板宽度小没有覆盖到预览区域时会出现
+            cwidth = mFullPreviewBm.getWidth();
+        }
+        int sx = 0;
+        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+        Camera.getCameraInfo(mCameraIdx, cameraInfo); // get camerainfo
+        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            sx = mFullPreviewBm.getWidth() - cwidth;
+        }
+        mScreenBm = Bitmap.createBitmap(mFullPreviewBm,
+                sx,
+                0,
+                cwidth,
+                mFullPreviewBm.getHeight(),
+                null, false);
 
         // FaceDetector
         Bitmap bmcopy = mScreenBm.copy(Bitmap.Config.RGB_565, true); // 必须为RGB_565
@@ -131,55 +160,44 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
     @Override
     protected void onPostExecute(FaceDetector.Face face) {
         try {
+            //mInfoLayout.setCameraImage(mScreenBm); //     test
             if (face != null) {
-                if(null == MyApplication.BrightnessHandler){
-                    MyApplication.BrightnessHandler = new Handler();
-                }
-                if(null == MyApplication.BrightnessRunnable) {
-                    MyApplication.BrightnessRunnable = new Runnable() {
-                        @Override
-                        public void run() {
-                            WindowManager.LayoutParams params = mActivity.getWindow().getAttributes();
-                            params.screenBrightness = 0.005f;
-                            mActivity.getWindow().setAttributes(params);
-                        }
-                    };
-                }
-                MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
-                WindowManager.LayoutParams params = mActivity.getWindow().getAttributes();
-                params.screenBrightness = 0.5f;
-                mActivity.getWindow().setAttributes(params);
-                MyApplication.BrightnessHandler.postDelayed(MyApplication.BrightnessRunnable,10*1000);
+                CameraActivity.startBrightnessWork(mActivity, mInfoLayout);
 
                 PointF pointF = new PointF();
                 face.getMidPoint(pointF);//获取人脸中心点
                 float eyesDistance = face.eyesDistance();//获取人脸两眼的间距
 
-                Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-                Camera.getCameraInfo(mCameraIdx, cameraInfo); // get camerainfo
-                if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    pointF.x = mScreenBm.getWidth() - pointF.x;
-                }
+                if(eyesDistance > mScreenBm.getWidth() * 1.0f / 10) {
 
-                int maxX = mSurface.getWidth();
-                int maxY = mSurface.getHeight();
-                pointF.x = pointF.x * maxX / mScreenBm.getWidth();
-                pointF.y = pointF.y * maxY / mScreenBm.getHeight();
-                eyesDistance = eyesDistance * maxY / mScreenBm.getHeight();
+                    Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+                    Camera.getCameraInfo(mCameraIdx, cameraInfo); // get camerainfo
+                    if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                        pointF.x = mScreenBm.getWidth() - pointF.x;
+                    }
 
-                int l = (int) (pointF.x - eyesDistance*1.1f);
-                if (l < 0) l = 1;
-                int t = (int) (pointF.y - eyesDistance*1.6f);
-                if (t < 0) t = 1;
-                int r = (int) (pointF.x + eyesDistance*1.1f);
-                if (r > maxX) r = maxX - 1;
-                int b = (int) (pointF.y + eyesDistance*1.8f);
-                if (b > maxY) b = maxY - 1;
-                //String pres=l+","+t+","+r+","+b;
-                //Toast.makeText(mActivity, pres, Toast.LENGTH_LONG).show();
-                mSurface.setFaceRect(l, t, r, b);
+                    int maxX = CameraActivityData.CameraActivity_width - mInfoLayout.getInfoLayoutWidth();
+                    int maxY = mSurface.getHeight();
+                    float rateY = (mSurface.getHeight() - 0.0f) / mFullPreviewBm.getHeight();
+                    //float rateX = rateY; // 保持宽高比时
+                    float rateX = (mSurface.getWidth() - 0.0f) / mFullPreviewBm.getWidth(); // 全屏时
+                    pointF.x = pointF.x * rateX;
+                    pointF.y = pointF.y * rateY;
+                    eyesDistance = eyesDistance * rateX;
 
-                // http work
+                    int l = (int) (pointF.x - eyesDistance * 1.1f);
+                    if (l < 0) l = 2;
+                    int t = (int) (pointF.y - eyesDistance * 1.6f);
+                    if (t < 0) t = 2;
+                    int r = (int) (pointF.x + eyesDistance * 1.1f);
+                    if (r > maxX - 2) r = maxX - 2;
+                    int b = (int) (pointF.y + eyesDistance * 1.8f);
+                    if (b > maxY - 2) b = maxY - 2;
+                    //String pres=l+","+t+","+r+","+b;
+                    //Toast.makeText(mActivity, pres, Toast.LENGTH_LONG).show();
+                    mSurface.setFaceRect(l, t, r, b);
+
+                    // http work
                 /*
                 sendBitmapData(bmcopy, MyApplication.FaceDetectUrl, new SendDataCallback(){
                     @Override
@@ -192,60 +210,63 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                         mSurface.setFaceRect2(l*4,t*4,(l+w)*4,(t+h)*4);
                     }
                 });*/
-                //sendBitmapData(mScreenBm, MyApplication.FaceDetectUrl,null);
+                    //sendBitmapData(mScreenBm, MyApplication.FaceDetectUrl,null);
 
-                //FaceHttpThread httpth = new FaceHttpThread(mActivity,mSendRawImage, mCameraIdx, MyApplication.FaceDetectUrl,null);
-                //httpth.start();
+                    //FaceHttpThread httpth = new FaceHttpThread(mActivity,mSendRawImage, mCameraIdx, MyApplication.FaceDetectUrl,null);
+                    //httpth.start();
 
-                //Thread.sleep(500);
+                    //Thread.sleep(500);
 
-                Date dt =new Date();
-                Long nowTime= dt.getTime();
-                Long spaceTime = new Long(0);
-                if(MyApplication.idcardfdvCnt != null)
-                    spaceTime = (nowTime - MyApplication.idcardfdvCnt)/1000;
+                    Date dt = new Date();
+                    Long nowTime = dt.getTime();
+                    Long spaceTime = new Long(0);
+                    if (MyApplication.idcardfdvCnt != null)
+                        spaceTime = (nowTime - MyApplication.idcardfdvCnt) / 1000;
 
-                if((MyApplication.idcardfdv_working == false) &&
-                        (MyApplication.idcardfdvCnt == null || spaceTime>1)
-                        ) {
-                    MyApplication.idcardfdv_working = true;
-                    //int rate = 4;
-                    int rate = 1;
-                    PointF cpoint = new PointF();
-                    face.getMidPoint(cpoint);
-                    cpoint.x = cpoint.x * rate;
-                    cpoint.y = cpoint.y * rate;
-                    float ed = face.eyesDistance() * rate * 2;
+                    if ((MyApplication.idcardfdv_working == false) &&
+                            (MyApplication.idcardfdvCnt == null || spaceTime > 1)
+                            ) {
+                        MyApplication.idcardfdv_working = true;
+                        //int rate = 4;
+                        float crate = 1;
+                        PointF cpoint = new PointF();
+                        face.getMidPoint(cpoint);
+                        cpoint.x = cpoint.x * crate;
+                        cpoint.y = cpoint.y * crate;
+                        float ed = face.eyesDistance() * crate * 2;
 
-                    int cmaxX = mScreenBm.getWidth() * rate;
-                    int cmaxY = mScreenBm.getHeight() * rate;
+                        int cmaxX = (int) (mScreenBm.getWidth() * crate);
+                        int cmaxY = (int) (mScreenBm.getHeight() * crate);
 
-                    //if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    //    cpoint.x = cmaxX - cpoint.x;
-                    //}
+                        //if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                        //    cpoint.x = cmaxX - cpoint.x;
+                        //}
 
-                    int cl = (int) (cpoint.x - ed);
-                    if (cl < 0) cl = 0;
-                    int ct = (int) (cpoint.y - ed);
-                    if (ct < 0) ct = 0;
-                    int cr = (int) (cpoint.x + ed);
-                    if (cr > cmaxX) cr = cmaxX;
-                    int cb = (int) (cpoint.y + ed);
-                    if (cb > cmaxY) cb = cmaxY;
-                    Rect croprect = new Rect(cl,ct,cr,cb);
+                        int cl = (int) (cpoint.x - ed);
+                        if (cl < 0) cl = 0;
+                        int ct = (int) (cpoint.y - ed);
+                        if (ct < 0) ct = 0;
+                        int cr = (int) (cpoint.x + ed);
+                        if (cr > cmaxX) cr = cmaxX;
+                        int cb = (int) (cpoint.y + ed);
+                        if (cb > cmaxY) cb = cmaxY;
+                        Rect croprect = new Rect(cl, ct, cr, cb);
 
-                    MyApplication.idcardfdv_idcarderror = false;
-                    IdcardReadThead readcard = new IdcardReadThead(mActivity);
-                    readcard.start();
+                        MyApplication.idcardfdv_idcarderror = false;
+                        IdcardReadThead readcard = new IdcardReadThead(mActivity);
+                        readcard.start();
 
-                    FaceHttpThread httpth = new FaceHttpThread(mActivity,
-                                                            mScreenBm, croprect,
-                                                           MyApplication.idcardfdvUrl,null);
+                        FaceHttpThread httpth = new FaceHttpThread(mActivity, mInfoLayout,
+                                mScreenBm, croprect,
+                                MyApplication.idcardfdvUrl, null);
 
-                    MyApplication.idcardfdvCnt = nowTime;
-                    httpth.start();
+                        MyApplication.idcardfdvCnt = nowTime;
+                        httpth.start();
 
+                    }
                 }
+                else
+                    mSurface.setFaceRect(0, 0, 0, 0);
             } else
                 mSurface.setFaceRect(0, 0, 0, 0);
         }
@@ -281,7 +302,7 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
 
     }
 
-    private static void idcardfdvRequest(Context context,
+    private static void idcardfdvRequest(Context context,InfoLayout infoL,
                                          Bitmap vbm,Rect croprect,
                                          String urlstring){
 
@@ -293,6 +314,7 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         List<Bitmap> verify_photos = new ArrayList<>();
         verify_photos.add(verify_photo);
         final Context cbctx = context;
+        final InfoLayout infolayout = infoL;
         IdcardFdv.RequestCallBack reqcb = new IdcardFdv.RequestCallBack() {
             @Override
             public void onSuccess(JSONObject object) {
@@ -300,11 +322,15 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                 try {
                     if (object.getInt("Err_no") == 0){
                         Double sim = object.getDouble("Similarity");
-                        String retstr = "相似度: " + sim;
-                        Toast.makeText(cbctx, retstr, Toast.LENGTH_LONG).show();
+                        //String retstr = "相似度: " + sim;
+                        //Toast.makeText(cbctx, retstr, Toast.LENGTH_LONG).show();
+                        String retstr = String.format("%.1f%%",sim * 100);
+                        infolayout.setResultSimilarity(retstr);
 
                         // access control
-                        if(sim > 0.77) {
+                        if(sim > CameraActivityData.SimThreshold) {
+                            infolayout.setResultIconPass();
+
                             Boolean action = true;
                             Date dt =new Date();
                             Long nowTime= dt.getTime();
@@ -315,18 +341,17 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                                 // Log.e("SpaceTime:", space.toString());
                             }
                             if(action) {
-                                AccessControlUtil.OpenDoor(
-                                        MyApplication.accessControlUrl,
-                                        MyApplication.accessControlSn
-                                );
+                               // AccessControlUtil.OpenDoor(
+                               //          MyApplication.accessControlUrl,
+                               //          MyApplication.accessControlSn
+                               // );
                                 MyApplication.accessControlCnt = nowTime;
                             }
                         }
+                        else{
+                            infolayout.setResultIconNotPass();
+                        }
 
-                    }
-                    else{
-                        //String retstr = "Error:"+object.getString("Err_msg");
-                        //Toast.makeText(cbctx, retstr, Toast.LENGTH_SHORT).show();
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -360,6 +385,14 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         Bitmap bm = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
         String idcard_photo = "data:image/jpeg;base64,"+B64Util.bitmapToBase64(bm);
 
+        // set info layout
+        if(null != infoL) {
+            infoL.setCameraImage(verify_photo);
+            infoL.setIdcardPhoto(bm);
+            infoL.setResultSimilarity("--%");
+            infoL.resetResultIcon();
+        }
+
         IdcardFdv.request(context,
                     urlstring,
                     CameraActivityData.Idcard_id,
@@ -370,12 +403,12 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                     reqcb);
     }
 
-    private static void idcardfdvRequest(Context context,
+    private static void idcardfdvRequest(Context context, InfoLayout infoL,
                                          byte[] verify_photo_data, int cameraIdx, Rect croprect,
                                          String urlstring){
 
         Bitmap vbm = CameraMgt.getBitmapFromBytes(verify_photo_data, cameraIdx, 1);
-        idcardfdvRequest(context, vbm, croprect,urlstring);
+        idcardfdvRequest(context, infoL, vbm, croprect,urlstring);
     }
 
     public interface SendDataCallback{
@@ -385,6 +418,7 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
 
     private static class FaceHttpThread extends Thread {
         private Context context;
+        private InfoLayout infolayout;
         private byte[] rawImage;
         private int cameraIdx;
         private Rect croprect;
@@ -392,10 +426,11 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         private String url;
         private SendDataCallback cb;
 
-        public FaceHttpThread(Context context,
+        public FaceHttpThread(Context context, InfoLayout infoL,
                               byte[] rawImage, int cameraIdx, Rect croprect,
                               String url, SendDataCallback cb) {
             this.context = context;
+            this.infolayout = infoL;
             this.rawImage = rawImage;
             this.cameraIdx = cameraIdx;
             this.croprect = croprect;
@@ -404,10 +439,11 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
             this.cb = cb;
         }
 
-        public FaceHttpThread(Context context,
+        public FaceHttpThread(Context context, InfoLayout infoL,
                               Bitmap verify_photo, Rect croprect,
                               String url, SendDataCallback cb) {
             this.context = context;
+            this.infolayout = infoL;
             this.croprect = croprect;
             this.rawImage = null;
             this.bm = verify_photo;
@@ -419,11 +455,11 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         public void run() {
             if(null!=bm) {
                 // sendBitmapData(bm, url, cb);
-                idcardfdvRequest(context, bm, croprect, url);
+                idcardfdvRequest(context, infolayout, bm, croprect, url);
             }
             else {
                 // sendRawImageData(rawImage, cameraIdx, url, cb);
-                idcardfdvRequest(context,  rawImage, cameraIdx, croprect, url);
+                idcardfdvRequest(context, infolayout, rawImage, cameraIdx, croprect, url);
             }
         }
     }

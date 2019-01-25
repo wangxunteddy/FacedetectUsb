@@ -22,12 +22,12 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity
             android:name="com.example.hzmt.facedetectusb.MainActivity"
-            android:screenOrientation = "portrait">
+            android:screenOrientation = "landscape">
         </activity>
 
         <activity
             android:name="com.example.hzmt.facedetectusb.CameraUtil.CameraActivity"
-            android:screenOrientation = "portrait">
+            android:screenOrientation = "landscape">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
 
@@ -37,7 +37,7 @@
 
         <activity
             android:name="com.example.hzmt.facedetectusb.SubActivity"
-            android:screenOrientation = "portrait">
+            android:screenOrientation = "landscape">
         </activity>
 
     </application>

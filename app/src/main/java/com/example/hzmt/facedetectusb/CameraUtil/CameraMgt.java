@@ -19,6 +19,7 @@ import android.content.Intent;
 import android.hardware.Camera;
 
 import android.util.Log;
+import android.view.ViewGroup;
 
 import com.example.hzmt.facedetectusb.MainActivity;
 
@@ -31,9 +32,9 @@ import java.util.List;
  */
 
 public class CameraMgt {
-    private int mPreviewId;
     private Activity mActivity;
     private SurfaceView mSurfaceView;
+    private SurfaceDraw mFaceRect;
 
     private Camera mCamera = null;
     private int[] mCamList = {-1, -1};
@@ -43,11 +44,12 @@ public class CameraMgt {
     private Camera.PreviewCallback mCameraFrameWork = null;
     private Camera.PictureCallback mCameraTakePictureJpegCB = null;
 
-    public CameraMgt(Activity activity, int previewId) {
+    public CameraMgt(Activity activity, SurfaceView preview, SurfaceDraw facerect) {
         mActivity = activity;
-        mPreviewId = previewId;
 
-        mSurfaceView = (SurfaceView) mActivity.findViewById(mPreviewId);
+        mSurfaceView = preview;
+        mFaceRect = facerect;
+
         //mSurfaceView.setVisibility(View.VISIBLE);
         mSurfaceView.setOnTouchListener(mSurfaceViewTouch);
         // 获得 SurfaceHolder 对象
@@ -95,12 +97,12 @@ public class CameraMgt {
         else if (mCamList[0] == -1) {
             mCamIdx = mCamList[1];
             isCamSelected = true;
-            startCamera();
+            //startCamera();
             return;
         } else if (mCamList[1] == -1) {
             mCamIdx = mCamList[0];
             isCamSelected = true;
-            startCamera();
+            //startCamera();
             return;
         } else
             mCamIdx = mCamList[0];  // default
@@ -162,6 +164,7 @@ public class CameraMgt {
             Camera.Size previewSize = getSuitablePreviewSize(parameters);
             if(null != previewSize){
                 parameters.setPreviewSize(previewSize.width, previewSize.height);
+                // parameters.setPreviewSize(1280, 960); //test
             }
 
             List<Camera.Size> picSizes = parameters.getSupportedPictureSizes();
@@ -174,6 +177,10 @@ public class CameraMgt {
                 }
             }
             parameters.setPictureSize(picSize.width, picSize.height);
+            //========== for GuanHai=========
+           // parameters.setPreviewSize(1280, 960);
+           // parameters.setPictureSize(1280, 960);
+            //===============================
             List<String> focusModes = parameters.getSupportedFocusModes();
             if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
@@ -182,7 +189,9 @@ public class CameraMgt {
             //if (sceneModes.contains(Camera.Parameters.SCENE_MODE_PORTRAIT)) {
             //    parameters.setSceneMode(Camera.Parameters.SCENE_MODE_PORTRAIT);
             //}
+
             mCamera.setParameters(parameters);
+            setSuitableSureface(); // 设置绘图窗口尺寸
             mCamera.setPreviewCallback(mCameraFrameWork);
             mCamera.startPreview();//开始预览
             isPreview = true;//设置是否预览参数为真
@@ -229,16 +238,37 @@ public class CameraMgt {
         return retSize;
     }
 
+    private void setSuitableSureface(){
+        Camera.Size previewSize;
+        try {
+            previewSize = mCamera.getParameters().getPreviewSize();
+        }
+        catch(Exception e){
+            return;
+        }
+
+        if(0 != previewSize.height){
+            //Point point = new Point();
+            // mActivity.getWindowManager().getDefaultDisplay().getRealSize(point); // 全屏分辨率
+
+            // 设置预览窗口大小
+            ViewGroup.LayoutParams cameraLP = mSurfaceView.getLayoutParams();
+            cameraLP.height = CameraActivityData.CameraActivity_height;
+            //cameraLP.width = cameraLP.height * previewSize.width / previewSize.height; // 保持宽高比
+            cameraLP.width = CameraActivityData.CameraActivity_width; // 拉伸全屏
+
+            // 设置人脸框绘图窗口大小，与预览窗口等大
+            ViewGroup.LayoutParams facerectL = mFaceRect.getLayoutParams();
+            facerectL.height = cameraLP.height;
+            facerectL.width = cameraLP.width;
+        }
+    }
 
     /**
-     * 设置 摄像头的角度
+     * 计算摄像头的显示角度
      *
-     * @param activity 上下文
-     * @param cameraId 摄像头ID（假如手机有N个摄像头，cameraId 的值 就是 0 ~ N-1）
-     * @param camera   摄像头对象
      */
-    public static void setCameraDisplayOrientation(Activity activity,
-                                                   int cameraId, android.hardware.Camera camera) {
+    public static int getCameraDisplayOrientation(Activity activity,int cameraId) {
 
         Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
         //获取摄像头信息
@@ -262,6 +292,20 @@ public class CameraMgt {
             // back-facing  后置摄像头
             result = (info.orientation - degrees + 360) % 360;
         }
+
+       return result;
+    }
+
+    /**
+     * 设置 摄像头的角度
+     *
+     * @param activity 上下文
+     * @param cameraId 摄像头ID（假如手机有N个摄像头，cameraId 的值 就是 0 ~ N-1）
+     * @param camera   摄像头对象
+     */
+    public static void setCameraDisplayOrientation(Activity activity,
+                                                   int cameraId, android.hardware.Camera camera) {
+        int result = getCameraDisplayOrientation(activity,cameraId);
         camera.setDisplayOrientation(result);
     }
 
@@ -312,7 +356,7 @@ public class CameraMgt {
                         mActivity.startActivity(intent);
                     }
                     else if(CameraActivityData.RequestType == CameraActivityData.REQ_TYPE_IDCARDFDV) {
-
+                        //mCamera.takePicture(null, null, mCameraTakePictureJpegCB);
                     }
                 }
             }
@@ -332,7 +376,8 @@ public class CameraMgt {
         //    matrix.postRotate(90);
         //else
         //    matrix.postRotate(270);
-        matrix.postRotate((cameraInfo.orientation + CameraActivityData.DeviceOrientation) % 360);
+
+        matrix.postRotate(0);
         Bitmap nbmp = Bitmap.createBitmap(bm,
                 0, 0, bm.getWidth(),  bm.getHeight(), matrix, true);
 

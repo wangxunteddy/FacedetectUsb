@@ -1,13 +1,17 @@
 package com.example.hzmt.facedetectusb.CameraUtil;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
+import android.graphics.Point;
+import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.view.SurfaceView;
 import android.widget.ImageView;
 import android.widget.Toast;
 import android.view.View;
@@ -37,6 +41,7 @@ import com.example.hzmt.facedetectusb.R;
 import com.example.hzmt.facedetectusb.SubActivity;
 
 //import com.invs.UsbBase;
+import com.hzmt.aifdrsclib.AiFdrScPkg;
 
 public class CameraActivity extends AppCompatActivity {
     private static final int PERMISSION_FINE_LOCATION = 0;
@@ -45,29 +50,13 @@ public class CameraActivity extends AppCompatActivity {
     private static final int TOAST_OFFSET_PERMISSION_RATIONALE = 100;
     List<Integer> mPermissionIdxList = new ArrayList<>();
     private CameraMgt mCameraMgt;
+    private SurfaceView mPreviewSV;
     private SurfaceDraw mFaceRect;
-    private ImageView mImgView;
+    //private ImageView mImgView;
+    private InfoLayout mInfoLayout;
     private FaceTask mFaceTask;
 
-/*    private PendingIntent mPermissionIntent;
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver()
-    {
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-            String action = intent.getAction();
-            if (UsbBase.ACTION_USB_PERMISSION.equals(action)) {
-                synchronized (this) {
-                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
 
-                    }else{
-                        //Toast.makeText(context, "读卡失败：打开设备失败", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-        }
-    };
-*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,14 +82,27 @@ public class CameraActivity extends AppCompatActivity {
         else{
             // default
             // CameraActivityData.RequestType = CameraActivityData.REQ_TYPE_LOGIN;
-             CameraActivityData.RequestType = CameraActivityData.REQ_TYPE_IDCARDFDV;
+            CameraActivityData.RequestType = CameraActivityData.REQ_TYPE_IDCARDFDV;
         }
 
-        mImgView = (ImageView) findViewById(R.id.imageView);
-        mImgView.setVisibility(View.INVISIBLE);
+        // screen size
+        Point point = new Point();
+        getWindowManager().getDefaultDisplay().getRealSize(point); // 全屏分辨率
+        CameraActivityData.CameraActivity_width = point.x;
+        CameraActivityData.CameraActivity_height = point.y;
+
+        //mImgView = (ImageView) findViewById(R.id.imageView);
+        //Bitmap infobg = Bitmap.createBitmap(2, 2,
+        //        Bitmap.Config.ARGB_8888);
+        //infobg.eraseColor(Color.parseColor("#FFFFFF"));//填充颜色
+        //mImgView.setImageBitmap(infobg);
+        //mImgView.setVisibility(View.INVISIBLE);
+
+        mPreviewSV = (SurfaceView) findViewById(R.id.camera_preview);
         mFaceRect = (SurfaceDraw) findViewById(R.id.surface_draw);
         mFaceRect.setVisibility(View.VISIBLE);
-        mCameraMgt = new CameraMgt(this, R.id.camera_preview);
+
+        mCameraMgt = new CameraMgt(this, mPreviewSV, mFaceRect);
         if(MyApplication.certstream_baos == null){
             try {
                 MyApplication.certstream_baos = new ByteArrayOutputStream();
@@ -117,10 +119,10 @@ public class CameraActivity extends AppCompatActivity {
             }
         }
 
-        // USB
-        //mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(UsbBase.ACTION_USB_PERMISSION), 0);
-        //IntentFilter filter = new IntentFilter(UsbBase.ACTION_USB_PERMISSION);
-        //registerReceiver(mUsbReceiver, filter);
+        mInfoLayout = new InfoLayout(this);
+
+        // brightness
+        CameraActivity.startBrightnessWork(this, mInfoLayout);
 
 
         // Android 6.0 运行时权限
@@ -199,8 +201,8 @@ public class CameraActivity extends AppCompatActivity {
             return;
 
         LocationManager locationManager = (LocationManager) getSystemService(this.LOCATION_SERVICE);
-     //   LocationProvider gpsProvider = locationManager.getProvider(LocationManager.GPS_PROVIDER);
-     //   LocationProvider netProvider = locationManager.getProvider(LocationManager.NETWORK_PROVIDER);
+        //   LocationProvider gpsProvider = locationManager.getProvider(LocationManager.GPS_PROVIDER);
+        //   LocationProvider netProvider = locationManager.getProvider(LocationManager.NETWORK_PROVIDER);
 
         if(bFine){
             // try gps
@@ -306,9 +308,16 @@ public class CameraActivity extends AppCompatActivity {
                 }
             }
 
-            mFaceTask = new FaceTask(CameraActivity.this, data, mCameraMgt.getCurrentCameraId(),camera,
-                    mImgView, mFaceRect, mCameraMgt.getCameraView());
+
+            mFaceTask = new FaceTask(CameraActivity.this,
+                    data,
+                    mCameraMgt.getCurrentCameraId(),
+                    camera,
+                    mInfoLayout,
+                    mFaceRect,
+                    mCameraMgt.getCameraView());
             mFaceTask.execute((Void)null);
+
         }
     };
 
@@ -316,8 +325,9 @@ public class CameraActivity extends AppCompatActivity {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
             //Log.e("onPictureTaken","Take Picture success!");
-            //Bitmap bm = CameraMgt.getBitmapFromBytes(data, mCameraMgt.getCurrentCameraId(), 1);
-            //mFaceRect.setFacePic(bm);
+            //Bitmap bm = CameraMgt.getBitmapFromBytes(data, mCameraMgt.getCurrentCameraId(), 4);
+            //mInfoLayout.setCameraImage(bm);
+
 
             Intent intent = new Intent();
             intent.setClass(CameraActivity.this, SubActivity.class);
@@ -329,6 +339,7 @@ public class CameraActivity extends AppCompatActivity {
             //CameraActivity.this.finish();
 
             //camera.startPreview();//重新开始预览
+
         }
     };
 
@@ -373,5 +384,41 @@ public class CameraActivity extends AppCompatActivity {
         super.onBackPressed();
     }
 
+    // ===========================================================
+    // screen brightness
+    public static void startBrightnessWork(final Activity activity, final InfoLayout infoL){
+        if(null == MyApplication.BrightnessHandler){
+            MyApplication.BrightnessHandler = new Handler();
+        }
+        if(null == MyApplication.BrightnessRunnable) {
+            MyApplication.BrightnessRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    WindowManager.LayoutParams params = activity.getWindow().getAttributes();
+                    params.screenBrightness = 0.005f;
+                    activity.getWindow().setAttributes(params);
 
+                    infoL.resetCameraImage();
+                    infoL.resetIdcardPhoto();
+                    infoL.setResultSimilarity("--%");
+                    infoL.resetResultIcon();
+                }
+            };
+        }
+        MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
+        WindowManager.LayoutParams params = activity.getWindow().getAttributes();
+        params.screenBrightness = 0.5f;
+        activity.getWindow().setAttributes(params);
+        MyApplication.BrightnessHandler.postDelayed(MyApplication.BrightnessRunnable,10*1000);
+    }
+
+    public static void keepBright(Activity activity){
+        MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
+        WindowManager.LayoutParams params = activity.getWindow().getAttributes();
+        params.screenBrightness = 0.5f;
+        activity.getWindow().setAttributes(params);
+    }
+    // ===========================================================
 }
+
+
