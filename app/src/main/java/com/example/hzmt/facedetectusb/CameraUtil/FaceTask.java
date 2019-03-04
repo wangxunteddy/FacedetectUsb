@@ -12,6 +12,8 @@ import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.os.AsyncTask;
+import android.os.Message;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.media.FaceDetector;
@@ -37,6 +39,7 @@ import java.util.Date;
 
 
 import com.example.hzmt.facedetectusb.MyApplication;
+import com.example.hzmt.facedetectusb.R;
 import com.example.hzmt.facedetectusb.util.B64Util;
 import com.example.hzmt.facedetectusb.util.HttpUtil;
 import com.example.hzmt.facedetectusb.util.SystemUtil;
@@ -51,7 +54,6 @@ import com.example.hzmt.facedetectusb.util.IdcardFdv;
 import com.invs.UsbBase;
 import com.invs.UsbSam;
 import com.invs.invsIdCard;
-import com.invs.invsUtil;
 import com.invs.invswlt;
 
 /**
@@ -59,7 +61,7 @@ import com.invs.invswlt;
  */
 
 public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
-    private Activity mActivity;
+    private CameraActivity mActivity;
     private byte[] mData;
     private Camera mCamera;
     private int mCameraIdx;
@@ -71,13 +73,15 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
     private Bitmap mScreenBm;
     private Bitmap mSendBm;
     private byte[] mSendRawImage;
+    private IDCardReadHandler mHandler;
 
     //public invsIdCard mCard;
 
     //构造函数
-    FaceTask(Activity activity, byte[] data, int cameraId, Camera camera,
+    FaceTask(CameraActivity activity, byte[] data, int cameraId, Camera camera,
              InfoLayout infoL, SurfaceDraw surface, SurfaceView cameraview){
         super();
+
         this.mActivity = activity;
         this.mData = data;
         this.mCamera = camera;
@@ -85,6 +89,8 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         this.mSurface = surface;
         this.mCameraView = cameraview;
         this.mCameraIdx = cameraId;
+
+        this.mHandler = null;
     }
 
     @Override
@@ -161,15 +167,51 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
     protected void onPostExecute(FaceDetector.Face face) {
         try {
             //mInfoLayout.setCameraImage(mScreenBm); //     test
-            if (face != null) {
-                CameraActivity.startBrightnessWork(mActivity, mInfoLayout);
 
+            if (face != null) {
                 PointF pointF = new PointF();
                 face.getMidPoint(pointF);//获取人脸中心点
                 float eyesDistance = face.eyesDistance();//获取人脸两眼的间距
 
                 if(eyesDistance > mScreenBm.getWidth() * 1.0f / 10) {
+                    // 眼间距需6足够大以避免一些误识别
 
+                    CameraActivity.keepBright(mActivity);
+
+                    Date dt = new Date();
+                    MyApplication.idcardfdvCnt = dt.getTime();
+
+                    // 检查读卡器状态
+                    // 权限确认中或已经成功打开时再进行人脸认证
+                    int readerState = mActivity.mIDCardReader.GetInitState();
+                    if(IDCardReader.STATE_NO_DEV == readerState ||
+                            IDCardReader.STATE_INIT_ERR == readerState) {
+                        String errMsg = "未找到身份证读卡器!";
+                        Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    else if(IDCardReader.STATE_REFUSE_PERMISSION == readerState){
+                        String errMsg = "无权限访问身份证读卡器!";
+                        Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    mActivity.setHelpImgVisibility(View.VISIBLE);
+                    // set info layout
+                    if(null != mInfoLayout) {
+                        mInfoLayout.resetCameraImage();
+                        mInfoLayout.resetIdcardPhoto();
+                        mInfoLayout.setResultSimilarity("--%");
+                        mInfoLayout.resetResultIcon();
+                    }
+                    mHandler = new IDCardReadHandler(mActivity);
+
+                    // 读卡器读卡线程
+                    MyApplication.idcardfdv_idcardstate = 0;
+                    IDCardReadThread readcard = new IDCardReadThread(mActivity, mHandler);
+                    readcard.start();
+
+                    // 计算人脸框
                     Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
                     Camera.getCameraInfo(mCameraIdx, cameraInfo); // get camerainfo
                     if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
@@ -195,37 +237,11 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                     if (b > maxY - 2) b = maxY - 2;
                     //String pres=l+","+t+","+r+","+b;
                     //Toast.makeText(mActivity, pres, Toast.LENGTH_LONG).show();
-                    mSurface.setFaceRect(l, t, r, b);
+                    // 人脸框
+                    //mSurface.setFaceRect(l, t, r, b);
 
                     // http work
-                /*
-                sendBitmapData(bmcopy, MyApplication.FaceDetectUrl, new SendDataCallback(){
-                    @Override
-                    public void onSuccess(int l, int t, int w, int h){
-                        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-                        Camera.getCameraInfo(mCameraIdx, cameraInfo); // get camerainfo
-                        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT){
-                            l = mScreenBm.getWidth()-l-w;
-                        }
-                        mSurface.setFaceRect2(l*4,t*4,(l+w)*4,(t+h)*4);
-                    }
-                });*/
-                    //sendBitmapData(mScreenBm, MyApplication.FaceDetectUrl,null);
-
-                    //FaceHttpThread httpth = new FaceHttpThread(mActivity,mSendRawImage, mCameraIdx, MyApplication.FaceDetectUrl,null);
-                    //httpth.start();
-
-                    //Thread.sleep(500);
-
-                    Date dt = new Date();
-                    Long nowTime = dt.getTime();
-                    Long spaceTime = new Long(0);
-                    if (MyApplication.idcardfdvCnt != null)
-                        spaceTime = (nowTime - MyApplication.idcardfdvCnt) / 1000;
-
-                    if ((MyApplication.idcardfdv_working == false) &&
-                            (MyApplication.idcardfdvCnt == null || spaceTime > 1)
-                            ) {
+                    if (!MyApplication.idcardfdv_working) {
                         MyApplication.idcardfdv_working = true;
                         //int rate = 4;
                         float crate = 1;
@@ -252,17 +268,13 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                         if (cb > cmaxY) cb = cmaxY;
                         Rect croprect = new Rect(cl, ct, cr, cb);
 
-                        MyApplication.idcardfdv_idcarderror = false;
-                        IdcardReadThead readcard = new IdcardReadThead(mActivity);
-                        readcard.start();
+
 
                         FaceHttpThread httpth = new FaceHttpThread(mActivity, mInfoLayout,
                                 mScreenBm, croprect,
-                                MyApplication.idcardfdvUrl, null);
+                                MyApplication.idcardfdvUrl);
 
-                        MyApplication.idcardfdvCnt = nowTime;
                         httpth.start();
-
                     }
                 }
                 else
@@ -275,45 +287,90 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         }
     }
 
-    private static void sendRawImageData(byte[] rawImage, int cameraIdx,
-                                         String urlstring, final SendDataCallback callback){
-        Bitmap bm = CameraMgt.getBitmapFromBytes(rawImage, cameraIdx, 1);
-        sendBitmapData(bm, urlstring, callback);
-    }
-
-    private static void sendBitmapData(Bitmap bm, String urlstring, final SendDataCallback callback){
-        String bmbase64 = "data:image/jpeg;base64," + B64Util.bitmapToBase64(bm);
-
-        Map<String, String> map = new HashMap<>();
-        map.put("imguri", bmbase64);
-        //map.put("imguri", "");
-        String macaddr = SystemUtil.getMacAddress();
-        map.put("mac", macaddr);
-        JSONObject object = new JSONObject(map);
-        JSONObject resultJSON = HttpUtil.JsonObjectRequest(object, urlstring);
-        if(resultJSON != null) {
-            //int t = resultJSON.optInt("t");
-            //int l = resultJSON.optInt("l");
-            //int w = resultJSON.optInt("w");
-            //int h = resultJSON.optInt("h");
-            //if(callback != null)
-            //    callback.onSuccess(l, t, w, h);
-        }
-
-    }
-
-    private static void idcardfdvRequest(Context context,InfoLayout infoL,
+    private static void idcardfdvRequest(CameraActivity activity,InfoLayout infoL,
                                          Bitmap vbm,Rect croprect,
                                          String urlstring){
-
         Bitmap verify_photo = Bitmap.createBitmap(vbm,
                 croprect.left, croprect.top,
                 croprect.right - croprect.left,
                 croprect.bottom-croprect.top,
                 null, false);
+
+        Rect faceRect = new Rect();
+        String verify_photo_feat = "";
+
         List<Bitmap> verify_photos = new ArrayList<>();
-        verify_photos.add(verify_photo);
-        final Context cbctx = context;
+        InputStream certstream = null;
+        if(0 == MyApplication.idcardfdv_requestType) {
+            verify_photos.add(verify_photo);
+        }
+        else if(1 == MyApplication.idcardfdv_requestType) {
+            // image feat
+            verify_photo_feat = MyApplication.AiFdrScIns.get_camera_feat(vbm,faceRect);
+            activity.mDebugLayout.addText("camera face:"+
+                                            "L("+faceRect.left+")"+
+                                            "T("+faceRect.top+")"+
+                                            "R("+faceRect.right+")"+
+                                            "B("+faceRect.bottom+")\n");
+            certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
+        }
+
+
+        // 等待身份证读卡，bitmap生成完成
+        while(MyApplication.idcardfdv_idcardstate != IDCardReadThread.IDCARD_ALL_OK){
+            if (MyApplication.idcardfdv_idcardstate == IDCardReadThread.IDCARD_ERR_READERR) {
+                activity.mDebugLayout.addText("IDCard read error!\n");
+                MyApplication.idcardfdv_working = false;
+                CameraActivity.startBrightnessWork(activity, infoL);
+                return;
+            }
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e){
+                e.printStackTrace();
+            }
+        }
+
+        if ( verify_photo_feat.equals("")) {
+            activity.mDebugLayout.addText("verify photo feat: null\n");
+            MyApplication.idcardfdv_working = false;
+            return;
+        }
+
+        // photo feat
+        MyApplication.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(MyApplication.PhotoImage, faceRect);
+        if(MyApplication.PhotoImageFeat.equals("")) {
+            CameraActivityData.Idcard_id = "";
+            CameraActivityData.Idcard_issuedate = "";
+            MyApplication.PhotoImageData = null;
+            MyApplication.PhotoImage = null;
+
+            activity.mDebugLayout.addText("idcard photo feat: null\n");
+            MyApplication.idcardfdv_working = false;
+            return;
+        }
+
+        // test
+        //CameraActivityData.Idcard_id = "332526198407210014";
+        //CameraActivityData.Idcard_issuedate = "201301212";
+        //Bitmap bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.zp);
+        String idcard_photo = null;
+        if(0 == MyApplication.idcardfdv_requestType) {
+            idcard_photo = "data:image/jpeg;base64," + B64Util.bitmapToBase64(MyApplication.PhotoImage);
+        }
+        else if(1 == MyApplication.idcardfdv_requestType) {
+            idcard_photo = MyApplication.PhotoImageFeat;
+        }
+        // set info layout
+        if(null != infoL) {
+            infoL.setCameraImage(verify_photo);
+            infoL.setIdcardPhoto(MyApplication.PhotoImage);
+            infoL.setResultSimilarity("--%");
+            infoL.resetResultIcon();
+        }
+
+        final CameraActivity cbctx = activity;
         final InfoLayout infolayout = infoL;
         IdcardFdv.RequestCallBack reqcb = new IdcardFdv.RequestCallBack() {
             @Override
@@ -341,175 +398,74 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                                 // Log.e("SpaceTime:", space.toString());
                             }
                             if(action) {
-                               // AccessControlUtil.OpenDoor(
-                               //          MyApplication.accessControlUrl,
-                               //          MyApplication.accessControlSn
-                               // );
+                                // AccessControlUtil.OpenDoor(
+                                //          MyApplication.accessControlUrl,
+                                //          MyApplication.accessControlSn
+                                // );
                                 MyApplication.accessControlCnt = nowTime;
                             }
                         }
                         else{
                             infolayout.setResultIconNotPass();
                         }
-
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
+                Date dt = new Date();
+                Long fdvtime = dt.getTime() - MyApplication.idcardfdvCnt;
+                cbctx.mDebugLayout.addText("FDV Time:"+fdvtime+"\n");
+
                 MyApplication.idcardfdv_working = false;
+                CameraActivity.startBrightnessWork(cbctx, infolayout);
             }
 
             @Override
             public void onFailure(int errno) {
+                cbctx.mDebugLayout.addText("network failed!\n");
                 MyApplication.idcardfdv_working = false;
+                CameraActivity.startBrightnessWork(cbctx, infolayout);
+                if( 3 == errno){
+                    // fdv failed
+                }
+                else{ /* others*/ }
             }
         };
 
-        //InputStream certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
-
-        while(MyApplication.PhotoImageData == null){
-            if(MyApplication.idcardfdv_idcarderror){
-                MyApplication.idcardfdv_working = false;
-                return;
-            }
-
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e){
-                e.printStackTrace();
-            }
-        }
-
-        byte[] idcard_photo_Data = MyApplication.PhotoImageData;
-        Bitmap bm = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
-        String idcard_photo = "data:image/jpeg;base64,"+B64Util.bitmapToBase64(bm);
-
-        // set info layout
-        if(null != infoL) {
-            infoL.setCameraImage(verify_photo);
-            infoL.setIdcardPhoto(bm);
-            infoL.setResultSimilarity("--%");
-            infoL.resetResultIcon();
-        }
-
-        IdcardFdv.request(context,
+        IdcardFdv.request(activity,
+                    MyApplication.idcardfdv_requestType,
                     urlstring,
                     CameraActivityData.Idcard_id,
                     CameraActivityData.Idcard_issuedate,
                     idcard_photo,
+                    verify_photo_feat,
                     verify_photos,
-                    null, //certstream,
+                    null,//certstream,
                     reqcb);
     }
 
-    private static void idcardfdvRequest(Context context, InfoLayout infoL,
-                                         byte[] verify_photo_data, int cameraIdx, Rect croprect,
-                                         String urlstring){
-
-        Bitmap vbm = CameraMgt.getBitmapFromBytes(verify_photo_data, cameraIdx, 1);
-        idcardfdvRequest(context, infoL, vbm, croprect,urlstring);
-    }
-
-    public interface SendDataCallback{
-        void onSuccess(int l, int t, int w, int h);
-    }
-
-
     private static class FaceHttpThread extends Thread {
-        private Context context;
+        private CameraActivity mActivity;
         private InfoLayout infolayout;
-        private byte[] rawImage;
-        private int cameraIdx;
         private Rect croprect;
         private Bitmap bm;
         private String url;
-        private SendDataCallback cb;
 
-        public FaceHttpThread(Context context, InfoLayout infoL,
-                              byte[] rawImage, int cameraIdx, Rect croprect,
-                              String url, SendDataCallback cb) {
-            this.context = context;
-            this.infolayout = infoL;
-            this.rawImage = rawImage;
-            this.cameraIdx = cameraIdx;
-            this.croprect = croprect;
-            this.bm = null;
-            this.url = url;
-            this.cb = cb;
-        }
-
-        public FaceHttpThread(Context context, InfoLayout infoL,
+        public FaceHttpThread(CameraActivity activity, InfoLayout infoL,
                               Bitmap verify_photo, Rect croprect,
-                              String url, SendDataCallback cb) {
-            this.context = context;
+                              String url) {
+            this.mActivity = activity;
             this.infolayout = infoL;
             this.croprect = croprect;
-            this.rawImage = null;
             this.bm = verify_photo;
             this.url = url;
-            this.cb = cb;
         }
 
         @Override
         public void run() {
-            if(null!=bm) {
-                // sendBitmapData(bm, url, cb);
-                idcardfdvRequest(context, infolayout, bm, croprect, url);
-            }
-            else {
-                // sendRawImageData(rawImage, cameraIdx, url, cb);
-                idcardfdvRequest(context, infolayout, rawImage, cameraIdx, croprect, url);
-            }
+            idcardfdvRequest(mActivity, infolayout, bm, croprect, url);
         }
     }
 
-    private static class IdcardReadThead extends Thread {
-        private Context context;
-
-        public IdcardReadThead(Context context){
-            this.context = context;
-            MyApplication.PhotoImageData = null;
-        }
-
-        @Override
-        public void run() {
-
-            int iRet = 0;
-            iRet = UsbBase.CheckDev(this.context);
-            if (iRet == -1){
-                Log.e("INVS300:", "连接失败");
-                MyApplication.idcardfdv_idcarderror = true;
-                return;
-            }
-
-            UsbSam mTermb = new UsbSam();
-            iRet = mTermb.ReadCard(this.context,false);
-
-            if(iRet == 0) {
-                invsIdCard mCard;
-                mCard = mTermb.mCard;
-                CameraActivityData.Idcard_id = mCard.getIdNo();
-                CameraActivityData.Idcard_issuedate = mCard.getStart();
-                byte[] szBmp = invswlt.Wlt2Bmp(mCard.wlt);
-                if ((szBmp != null) && (szBmp.length == 38862)) {
-                    //Bitmap bmp = BitmapFactory.decodeByteArray(szBmp, 0, szBmp.length);
-                    //Intent intent = new Intent();
-                    //intent.setClass(this.context, SubActivity.class);
-                    //intent.putExtra("facedata", szBmp);
-
-                    MyApplication.PhotoImageData = szBmp;
-                    //intent.putExtra("RequestType", CameraActivityData.REQ_TYPE_IDCARDFDV);
-                    //this.context.startActivity(intent);
-                } else {
-                    MyApplication.idcardfdv_idcarderror = true;
-                }
-            }
-            else{
-                Log.e("INVS300:", "读卡失败");
-                MyApplication.idcardfdv_idcarderror = true;
-            }
-
-        }
-    }
 }

@@ -5,12 +5,14 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.util.Log;
 import android.view.SurfaceView;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -42,19 +44,24 @@ import com.example.hzmt.facedetectusb.SubActivity;
 
 //import com.invs.UsbBase;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
+import com.invs.UsbBase;
 
 public class CameraActivity extends AppCompatActivity {
     private static final int PERMISSION_FINE_LOCATION = 0;
     private static final int PERMISSION_COARSE_LOCATION = 1;
     private static final int PERMISSION_CAMERA = 2;
+    private static final int PERMISSION_STORAGE = 3;
     private static final int TOAST_OFFSET_PERMISSION_RATIONALE = 100;
     List<Integer> mPermissionIdxList = new ArrayList<>();
     private CameraMgt mCameraMgt;
     private SurfaceView mPreviewSV;
     private SurfaceDraw mFaceRect;
-    //private ImageView mImgView;
     private InfoLayout mInfoLayout;
+    private ImageView mHelpImg;
     private FaceTask mFaceTask;
+
+    public DebugLayout mDebugLayout;
+    public IDCardReader mIDCardReader;
 
 
     @Override
@@ -121,16 +128,22 @@ public class CameraActivity extends AppCompatActivity {
 
         mInfoLayout = new InfoLayout(this);
 
+        mHelpImg = findViewById(R.id.helpimg);
+
         // brightness
         CameraActivity.startBrightnessWork(this, mInfoLayout);
 
+        // debug output
+        mDebugLayout = new DebugLayout(this);
+        mDebugLayout.setText("Debug:\n");
 
         // Android 6.0 运行时权限
         String[] permissions = new String[]
                 {
                         Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION,
-                        Manifest.permission.CAMERA
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
                 };
         List<String> permissionList = new ArrayList<>();
 
@@ -184,6 +197,17 @@ public class CameraActivity extends AppCompatActivity {
     private void initWork(boolean bStartCamera){
         // initLocation();
 
+        // 初始化AiFdrSc
+        MyApplication.AiFdrScIns = new AiFdrScPkg();
+        String path = Environment.getExternalStorageDirectory().getPath();
+        //path = path + "/fdrmodel/";
+        path = "/sdcard/fdrmodel/";
+        MyApplication.AiFdrScIns.initAiFdrSc(path);
+
+        // IDCardReader
+        mIDCardReader = new IDCardReader();
+        mIDCardReader.OpenIDCardReader(this);
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED){
             mCameraMgt.setPreviewCallback(mPreviewCB);
@@ -193,9 +217,9 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void initLocation(){
-        Boolean bFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        boolean bFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;
-        Boolean bCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        boolean bCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;
         if(!bFine && !bCoarse)
             return;
@@ -271,6 +295,9 @@ public class CameraActivity extends AppCompatActivity {
             case PERMISSION_CAMERA:
                 msg = "请在设置里打开摄像头使用权限！";
                 break;
+            case PERMISSION_STORAGE:
+                msg = "请在设置里打开存储权限！";
+                break;
             case TOAST_OFFSET_PERMISSION_RATIONALE+PERMISSION_FINE_LOCATION:
                 msg = "无法使用GPS定位服务！";
                 break;
@@ -279,6 +306,9 @@ public class CameraActivity extends AppCompatActivity {
                 break;
             case TOAST_OFFSET_PERMISSION_RATIONALE+PERMISSION_CAMERA:
                 msg = "无法使用摄像头，请退出重试！";
+                break;
+            case TOAST_OFFSET_PERMISSION_RATIONALE+PERMISSION_STORAGE:
+                msg = "无法读取模型文件，请退出重试！";
                 break;
             default:
                 return;
@@ -308,15 +338,16 @@ public class CameraActivity extends AppCompatActivity {
                 }
             }
 
-
-            mFaceTask = new FaceTask(CameraActivity.this,
-                    data,
-                    mCameraMgt.getCurrentCameraId(),
-                    camera,
-                    mInfoLayout,
-                    mFaceRect,
-                    mCameraMgt.getCameraView());
-            mFaceTask.execute((Void)null);
+            if (MyApplication.idcardfdv_working == false) {
+                mFaceTask = new FaceTask(CameraActivity.this,
+                        data,
+                        mCameraMgt.getCurrentCameraId(),
+                        camera,
+                        mInfoLayout,
+                        mFaceRect,
+                        mCameraMgt.getCameraView());
+                mFaceTask.execute((Void) null);
+            }
 
         }
     };
@@ -378,10 +409,20 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
+    public void setHelpImgVisibility(int visibility){
+        mHelpImg.setVisibility(visibility);
+    }
+
     @Override
     public void onBackPressed() {
         mCameraMgt.closeCamera();
         super.onBackPressed();
+    }
+
+    @Override
+    public void onDestroy(){
+        mIDCardReader.CloseIDCardReader();
+        super.onDestroy();
     }
 
     // ===========================================================

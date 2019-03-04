@@ -30,6 +30,8 @@ import android.widget.Toast;
 import android.text.Spannable;
 import android.text.Selection;
 
+import com.example.hzmt.facedetectusb.MyApplication;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -67,6 +69,7 @@ public class IdcardFdvRegister {
         private InputStream certstream = null;
         private RegisterCallBack regcallback = null;
         private Context regcontext = null;
+        private int requestType = 1;
         private String defaultSn = null;
 
         private AlertDialog registerDialog = null;
@@ -155,16 +158,16 @@ public class IdcardFdvRegister {
                     });
         }
 
-        public void register(Context context, String defaultSn){
+        public void register(Context context, int requestType, String defaultSn){
             nowRegistering = true;
-
+            this.requestType = requestType;
             regcontext = context;
             this.defaultSn = defaultSn;
             this.execute();
         }
 
         private void postProductSn(String productsn){
-            RegisterHttpsThead work = new RegisterHttpsThead(regcontext, certstream,
+            RegisterHttpsThead work = new RegisterHttpsThead(regcontext, requestType,certstream,
                                                         waitingDialog, regcallback);
             work.execute(urlstring, productsn);
         }
@@ -228,6 +231,7 @@ public class IdcardFdvRegister {
     private static class RegisterHttpsThead extends AsyncTask<String, Void, JSONObject> {
         private String urlstring = null;
         private Context regcontext = null;
+        private int requestType = 1;
         private InputStream certstream = null;
         private RegisterCallBack regcallback = null;
 
@@ -236,11 +240,13 @@ public class IdcardFdvRegister {
         // for reuse certstream
         ByteArrayOutputStream baos = null;
         public RegisterHttpsThead(Context regcontext,
+                                  int requestType,
                                   InputStream certstream,
                                   ProgressDialog waitingDialog,
                                   RegisterCallBack regcallback){
 
             this.regcontext = regcontext;
+            this.requestType = requestType;
             this.certstream = certstream;
             this.waitingDialog = waitingDialog;
             this.regcallback = regcallback;
@@ -257,17 +263,35 @@ public class IdcardFdvRegister {
 
             Map<String, String> map = new HashMap<>();
             String shaSrc ="";
-            String tempdata = "10022245";
-            map.put("appId", tempdata);
-            shaSrc += tempdata;
+            String tempdata;
+            if( 0 == requestType) {
+                // image fdv server
+                tempdata = "10022245";
+                map.put("appId", tempdata);
+                shaSrc += tempdata;
 
-            tempdata = "MGRhNjEyYWExOTdhYzYxNTkx";
-            map.put("apiKey", tempdata);
-            shaSrc += tempdata;
+                tempdata = "MGRhNjEyYWExOTdhYzYxNTkx";
+                map.put("apiKey", tempdata);
+                shaSrc += tempdata;
 
-            tempdata = "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw";
-            //map.put("secretKey", "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw");
-            shaSrc += tempdata;
+                tempdata = "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw";
+                //map.put("secretKey", "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw");
+                shaSrc += tempdata;
+            }
+            else{   //else if( 1 == requestType) {
+                // feat fdv server
+                tempdata = "10022546";
+                map.put("appId", tempdata);
+                shaSrc += tempdata;
+
+                tempdata = "NGRkZGFhZDAwMDAwOThlZTky";
+                map.put("apiKey", tempdata);
+                shaSrc += tempdata;
+
+                tempdata = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
+                shaSrc += tempdata;
+            }
 
             tempdata = SystemUtil.getMacAddress();
             map.put("MacId", tempdata);
@@ -307,8 +331,11 @@ public class IdcardFdvRegister {
                 e.printStackTrace();
             }
 
-            //JSONObject resultJSON = HttpsUtil.JsonObjectRequest(certstream_cpy,object,url);
-            JSONObject resultJSON = HttpUtil.JsonObjectRequest(object,url);
+            JSONObject resultJSON;
+            if(null != certstream_cpy)
+                resultJSON = HttpsUtil.JsonObjectRequest(certstream_cpy,object,url);
+            else
+                resultJSON = HttpUtil.JsonObjectRequest(object,url);
 
             return resultJSON;
         }
@@ -362,7 +389,7 @@ public class IdcardFdvRegister {
                                     newstream = new ByteArrayInputStream(baos.toByteArray());
                                 manager.setCertStream(newstream);
                                 manager.setRegisterCallBack(regcallback);
-                                manager.register(regcontext,ProductSn);
+                                manager.register(regcontext,requestType,ProductSn);
                             }
                             else{
                                 // save register info and continue

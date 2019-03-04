@@ -10,6 +10,9 @@ public class CameraActivityData {
     public static final int REQ_TYPE_REGISTER = 200;
     public static final int REQ_TYPE_IDCARDFDV = 300;
 
+    // debug info
+    public static boolean DEBUG_INFO = true;
+
     // screen size
     public static int CameraActivity_width = 1280;
     public static int CameraActivity_height = 720;

@@ -80,7 +80,7 @@
             android:text="--%"
             android:textAlignment="center"
             android:textColor="@color/colorPrimaryDark"
-            android:textSize="64dp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:visibility="visible" />
 
@@ -127,4 +127,40 @@
         </LinearLayout>
 
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/helpimg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitXY"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/help" />
+
+    <LinearLayout
+        android:id="@+id/debug_layout"
+        android:layout_width="165dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@android:color/white"
+        android:orientation="vertical"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/debug_text"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical"
+            android:singleLine="false"
+            android:text="Debug:"
+            android:textSize="14sp" />
+    </LinearLayout>
+
 </android.support.constraint.ConstraintLayout>

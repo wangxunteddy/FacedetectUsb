@@ -1,11 +1,14 @@
 package com.example.hzmt.facedetectusb;
 
 import android.app.Application;
+import android.graphics.Bitmap;
 import android.os.Handler;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 //import com.invs.BtReaderClient;
+
+import com.hzmt.aifdrsclib.AiFdrScPkg;
 
 import java.io.ByteArrayOutputStream;
 
@@ -17,11 +20,17 @@ public class MyApplication extends Application {
     public static RequestQueue requestQueue;
     public static String FaceDetectUrl = "http://192.168.1.12:8070/AppFaceDetect";
 
+    public static AiFdrScPkg AiFdrScIns = null;
     public static byte[] PhotoImageData = null;
+    public static Bitmap PhotoImage;
+    public static String PhotoImageFeat;
+
     public static boolean idcardfdv_working = false;
-    public static boolean idcardfdv_idcarderror = false;
-    public static String idcardfdvUrl = "http://192.168.1.201:8004/idcardfdv";
-    //public static String idcardfdvUrl = "https://202.107.219.50:8004/idcardfdv";
+    public static int idcardfdv_idcardstate = 0;
+    public static int idcardfdv_requestType = 1;    // feat fdv
+    //public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
+    public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";
+    //public static String idcardfdvUrl = "http://192.168.1.201:8004/idcardfdv";
     public static ByteArrayOutputStream certstream_baos = null;
     //public static BtReaderClient MyBtReaderClient = null;
     public static boolean isBtReaderClientConnected = false;

@@ -33,12 +33,13 @@ import android.content.Context;
 
 public class IdcardFdv {
     public static void request( Context context,
+                                int requestType,
                                 String urlstring,
                                 String idcard_id,
                                 String idcard_issuedate,
                                 String idcard_photo,
+                                String verify_photo,
                                 List<Bitmap> verify_photos,
-                               // String[] verify_photos,
                                 InputStream certstream,
                                 RequestCallBack cb){
 
@@ -51,7 +52,7 @@ public class IdcardFdv {
         }
         else {
             if(null != cb )
-                cb.onFailure(0);
+                cb.onFailure(1);
             return;
         }
 
@@ -70,7 +71,7 @@ public class IdcardFdv {
         //IdcardFdvRegister.clearRegisterInfo(context);
         if(IdcardFdvRegister.nowRegistering) {
             if(null != cb )
-                cb.onFailure(0);
+                cb.onFailure(2);
             return;
         }
 
@@ -78,9 +79,10 @@ public class IdcardFdv {
             String sn = IdcardFdvRegister.getProductSn();
             String regno = IdcardFdvRegister.getRegisterdNo();
             HttpsThread th = new HttpsThread(urlstring,
+                    requestType,
                     idcard_id, idcard_issuedate,
                     sn, regno,
-                    idcard_photo,verify_photos,
+                    idcard_photo,verify_photo,verify_photos,
                     certstream, cb);
 
             th.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,(Void)null);
@@ -88,7 +90,11 @@ public class IdcardFdv {
         else{
             // register
             IdcardFdvRegister.RegisterManager manager = new IdcardFdvRegister.RegisterManager();
-            String registerUrl = "http://" + ip + ":" + port + "/registerproduct";
+            String registerUrl;
+            if(certstream != null)
+                registerUrl = "https://" + ip + ":" + port + "/registerproduct";
+            else
+                registerUrl = "http://" + ip + ":" + port + "/registerproduct";
             manager.setRegisterUrl(registerUrl);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -111,9 +117,11 @@ public class IdcardFdv {
             manager.setCertStream(certstream_cpy);
 
             final String urlstring_p = urlstring;
+            final int requestType_p = requestType;
             final String idcard_id_p = idcard_id;
             final String idcard_issuedate_p = idcard_issuedate;
             final String idcard_photo_p = idcard_photo;
+            final String verify_photo_p = verify_photo;
             final List<Bitmap> verify_photos_p = verify_photos;
             final InputStream certstream_p = new ByteArrayInputStream(baos.toByteArray());
             final RequestCallBack cb_p = cb;
@@ -121,9 +129,10 @@ public class IdcardFdv {
                 @Override
                 public void onSuccess(String sn, String regno){
                     HttpsThread th = new HttpsThread(urlstring_p,
+                            requestType_p,
                             idcard_id_p, idcard_issuedate_p,
                             sn,regno,
-                            idcard_photo_p,verify_photos_p,
+                            idcard_photo_p,verify_photo_p, verify_photos_p,
                             certstream_p, cb_p);
 
                     th.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,(Void)null);
@@ -137,7 +146,7 @@ public class IdcardFdv {
             };
             manager.setRegisterCallBack(regcallback);
 
-            manager.register(context,null);
+            manager.register(context, requestType,null);
 
             return;
         }
@@ -151,31 +160,36 @@ public class IdcardFdv {
 
     private static class HttpsThread extends AsyncTask<Void, Void, JSONObject> {
         private String urlstring;
+        private int requestType;
         private String idcard_id;
         private String idcard_issuedate;
         private String productsn;
         private String registerno;
         private String idcard_photo;
+        private String verify_photo;
         private List<Bitmap> verify_photos;
-        //private String[] verify_photos;
         private InputStream certstream;
         private RequestCallBack callback;
 
-        public HttpsThread(String urlstring, String idcard_id,
+        public HttpsThread(String urlstring,
+                           int    requestType,
+                           String idcard_id,
                            String idcard_issuedate,
                            String productsn,
                            String registerno,
                            String idcard_photo,
+                           String verify_photo,
                            List<Bitmap> verify_photos,
-                         //  String[] verify_photos,
                            InputStream certstream,
                            RequestCallBack callback){
             this.urlstring = urlstring;
+            this.requestType = requestType;
             this.idcard_id = idcard_id;
             this.idcard_issuedate = idcard_issuedate;
             this.productsn = productsn;
             this.registerno = registerno;
             this.idcard_photo = idcard_photo;
+            this.verify_photo = verify_photo;
             this.verify_photos = verify_photos;
             this.certstream = certstream;
             this.callback = callback;
@@ -188,17 +202,35 @@ public class IdcardFdv {
             try {
                 Map<String, String> map = new HashMap<>();
                 String shaSrc ="";
-                String tempdata = "10022245";
-                map.put("appId", tempdata);
-                shaSrc += tempdata;
+                String tempdata;
+                if(0 == requestType) {
+                    // image fdv
+                    tempdata = "10022245";
+                    map.put("appId", tempdata);
+                    shaSrc += tempdata;
 
-                tempdata = "MGRhNjEyYWExOTdhYzYxNTkx";
-                map.put("apiKey", tempdata);
-                shaSrc += tempdata;
+                    tempdata = "MGRhNjEyYWExOTdhYzYxNTkx";
+                    map.put("apiKey", tempdata);
+                    shaSrc += tempdata;
 
-                tempdata = "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw";
-                //map.put("secretKey", "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw");
-                shaSrc += tempdata;
+                    tempdata = "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw";
+                    //map.put("secretKey", "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw");
+                    shaSrc += tempdata;
+                }
+                else{ // else if(1 == requestType) {
+                    // feat fdv
+                    tempdata = "10022546";
+                    map.put("appId", tempdata);
+                    shaSrc += tempdata;
+
+                    tempdata = "NGRkZGFhZDAwMDAwOThlZTky";
+                    map.put("apiKey", tempdata);
+                    shaSrc += tempdata;
+
+                    tempdata = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                    //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
+                    shaSrc += tempdata;
+                }
 
                 tempdata = SystemUtil.getMacAddress();
                 map.put("MacId", tempdata);
@@ -225,21 +257,33 @@ public class IdcardFdv {
                 map.put("idcard_issuedate", tempdata);
                 shaSrc += tempdata;
 
-                tempdata = idcard_photo;
-                map.put("idcard_photo", tempdata);
-                shaSrc += tempdata;
-
                 JSONArray jsonArray = new JSONArray();
-                for(Bitmap b : verify_photos) {
-                    //Bitmap bitmap = getBitmapFromBytes(b,1);
-                    //Bitmap cropbm = cropBitmapByFaceDetector(bitmap);
-                    Bitmap cropbm = b;
-                    if(null != cropbm){
-                        String cropbmStr = "data:image/jpeg;base64,"+bitmapToBase64(cropbm);
-                        jsonArray.put(cropbmStr);
-                        shaSrc += cropbmStr;
+                if(0 == requestType) {
+                    // image fdv
+                    tempdata = idcard_photo;
+                    map.put("idcard_photo", tempdata);
+                    shaSrc += tempdata;
+
+                    for (Bitmap b : verify_photos) {
+                        //Bitmap bitmap = getBitmapFromBytes(b,1);
+                        //Bitmap cropbm = cropBitmapByFaceDetector(bitmap);
+                        Bitmap cropbm = b;
+                        if (null != cropbm) {
+                            String cropbmStr = "data:image/jpeg;base64," + bitmapToBase64(cropbm);
+                            jsonArray.put(cropbmStr);
+                            shaSrc += cropbmStr;
+                        }
                     }
+                } else { // else if(1 == requestType) {
+                    // feat fdv
+                    tempdata = idcard_photo;
+                    map.put("idcard_face_info", tempdata);
+                    shaSrc += tempdata;
+
+                    jsonArray.put(verify_photo);
+                    shaSrc += verify_photo;
                 }
+
                 if(jsonArray.length() == 0){
                     JSONObject resultJSON = null;
                     Map<String, String> ret_map = new HashMap<>();
@@ -261,13 +305,20 @@ public class IdcardFdv {
                 tempdata = SystemUtil.shaEncrypt(shaSrc);
                 map.put("checksum", tempdata);
                 object = new JSONObject(map);
-                object.put("verify_photos", jsonArray);
+                if( 0 == requestType)
+                    object.put("verify_photos", jsonArray);
+                else //  if( 1 == requestType)
+                    object.put("verify_face_infos", jsonArray);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
 
-            //JSONObject resultJSON = HttpsUtil.JsonObjectRequest(certstream,object,urlstring);
-            JSONObject resultJSON = HttpUtil.JsonObjectRequest(object,urlstring);
+            JSONObject resultJSON;
+            if(null != certstream)
+                resultJSON = HttpsUtil.JsonObjectRequest(certstream,object,urlstring);
+            else
+                resultJSON = HttpUtil.JsonObjectRequest(object,urlstring);
+
             return resultJSON;
             //Log.e("resultJSON:",resultJSON.toString());
 
@@ -279,7 +330,7 @@ public class IdcardFdv {
                 if(null != resultJSON)
                     callback.onSuccess(resultJSON);
                 else
-                    callback.onFailure(0);
+                    callback.onFailure(3);
             }
         }
     }
