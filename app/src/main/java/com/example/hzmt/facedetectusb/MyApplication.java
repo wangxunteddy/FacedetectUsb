@@ -21,12 +21,7 @@ public class MyApplication extends Application {
     public static String FaceDetectUrl = "http://192.168.1.12:8070/AppFaceDetect";
 
     public static AiFdrScPkg AiFdrScIns = null;
-    public static byte[] PhotoImageData = null;
-    public static Bitmap PhotoImage;
-    public static String PhotoImageFeat;
-
-    public static boolean idcardfdv_working = false;
-    public static int idcardfdv_idcardstate = 0;
+    public static byte[] TestImageData = null;
     public static int idcardfdv_requestType = 1;    // feat fdv
     //public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
     public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";

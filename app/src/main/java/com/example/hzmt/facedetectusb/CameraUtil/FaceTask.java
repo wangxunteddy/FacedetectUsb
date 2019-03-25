@@ -60,7 +60,7 @@ import com.invs.invswlt;
  * Created by xun on 2017/8/29.
  */
 
-public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
+public class FaceTask extends AsyncTask<Void, Void, Rect>{
     private CameraActivity mActivity;
     private byte[] mData;
     private Camera mCamera;
@@ -73,7 +73,6 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
     private Bitmap mScreenBm;
     private Bitmap mSendBm;
     private byte[] mSendRawImage;
-    private IDCardReadHandler mHandler;
 
     //public invsIdCard mCard;
 
@@ -89,12 +88,10 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         this.mSurface = surface;
         this.mCameraView = cameraview;
         this.mCameraIdx = cameraId;
-
-        this.mHandler = null;
     }
 
     @Override
-    protected FaceDetector.Face doInBackground(Void... params) {
+    protected Rect doInBackground(Void... params) {
         // TODO Auto-generated method stub
         Camera.Size previewSize;
         try {
@@ -120,7 +117,7 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                 80,
                 baos);
         byte[] rawImage =baos.toByteArray();
-        mFullPreviewBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
+        mFullPreviewBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 2);
         int cwidth = CameraActivityData.CameraActivity_width - mInfoLayout.getInfoLayoutWidth();
         // 保持宽高比时:
         //cwidth = cwidth * fullPreviewBm.getHeight() / CameraActivityData.CameraActivity_height;
@@ -146,17 +143,26 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                 mFullPreviewBm.getHeight(),
                 null, false);
 
-        // FaceDetector
-        Bitmap bmcopy = mScreenBm.copy(Bitmap.Config.RGB_565, true); // 必须为RGB_565
-        FaceDetector faceDetector = new FaceDetector(bmcopy.getWidth(),
-                bmcopy.getHeight(), CameraActivityData.FaceDetectNum);
-        FaceDetector.Face[] faces = new FaceDetector.Face[CameraActivityData.FaceDetectNum];
-        int faceNum = faceDetector.findFaces(bmcopy, faces);
-        if(faceNum > 0){
+        // face detect
+        Rect face = new Rect();
+        boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mScreenBm,face);
+        //==================
+        //String crops=String.format("l:%d,t:%d,r:%d,b:%d",
+        //        face.left,face.top,
+        //        face.right,face.bottom);
+        //Log.e("cropImg",crops);
+        //===================
+        if(face.left < 0) face.left = 0;
+        if(face.top < 0) face.top = 0;
+        if(face.right > mScreenBm.getWidth()) face.right = mScreenBm.getWidth();
+        if(face.bottom > mScreenBm.getHeight()) face.bottom = mScreenBm.getHeight();
+
+
+        if(detect){
             //mSendBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
             mSendBm = mScreenBm;
             mSendRawImage = rawImage;
-            return faces[0];
+            return face;
         }
         else{
             return null;
@@ -164,125 +170,72 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
     }
 
     @Override
-    protected void onPostExecute(FaceDetector.Face face) {
+    protected void onPostExecute(Rect face) {
         try {
             //mInfoLayout.setCameraImage(mScreenBm); //     test
 
             if (face != null) {
-                PointF pointF = new PointF();
-                face.getMidPoint(pointF);//获取人脸中心点
-                float eyesDistance = face.eyesDistance();//获取人脸两眼的间距
+                CameraActivity.keepBright(mActivity);
 
-                if(eyesDistance > mScreenBm.getWidth() * 1.0f / 10) {
-                    // 眼间距需6足够大以避免一些误识别
+                Date dt = new Date();
+                MyApplication.idcardfdvCnt = dt.getTime();
 
-                    CameraActivity.keepBright(mActivity);
-
-                    Date dt = new Date();
-                    MyApplication.idcardfdvCnt = dt.getTime();
-
-                    // 检查读卡器状态
-                    // 权限确认中或已经成功打开时再进行人脸认证
-                    int readerState = mActivity.mIDCardReader.GetInitState();
-                    if(IDCardReader.STATE_NO_DEV == readerState ||
-                            IDCardReader.STATE_INIT_ERR == readerState) {
-                        String errMsg = "未找到身份证读卡器!";
-                        Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    else if(IDCardReader.STATE_REFUSE_PERMISSION == readerState){
-                        String errMsg = "无权限访问身份证读卡器!";
-                        Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    mActivity.setHelpImgVisibility(View.VISIBLE);
-                    // set info layout
-                    if(null != mInfoLayout) {
-                        mInfoLayout.resetCameraImage();
-                        mInfoLayout.resetIdcardPhoto();
-                        mInfoLayout.setResultSimilarity("--%");
-                        mInfoLayout.resetResultIcon();
-                    }
-                    mHandler = new IDCardReadHandler(mActivity);
-
-                    // 读卡器读卡线程
-                    MyApplication.idcardfdv_idcardstate = 0;
-                    IDCardReadThread readcard = new IDCardReadThread(mActivity, mHandler);
-                    readcard.start();
-
-                    // 计算人脸框
-                    Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-                    Camera.getCameraInfo(mCameraIdx, cameraInfo); // get camerainfo
-                    if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                        pointF.x = mScreenBm.getWidth() - pointF.x;
-                    }
-
-                    int maxX = CameraActivityData.CameraActivity_width - mInfoLayout.getInfoLayoutWidth();
-                    int maxY = mSurface.getHeight();
-                    float rateY = (mSurface.getHeight() - 0.0f) / mFullPreviewBm.getHeight();
-                    //float rateX = rateY; // 保持宽高比时
-                    float rateX = (mSurface.getWidth() - 0.0f) / mFullPreviewBm.getWidth(); // 全屏时
-                    pointF.x = pointF.x * rateX;
-                    pointF.y = pointF.y * rateY;
-                    eyesDistance = eyesDistance * rateX;
-
-                    int l = (int) (pointF.x - eyesDistance * 1.1f);
-                    if (l < 0) l = 2;
-                    int t = (int) (pointF.y - eyesDistance * 1.6f);
-                    if (t < 0) t = 2;
-                    int r = (int) (pointF.x + eyesDistance * 1.1f);
-                    if (r > maxX - 2) r = maxX - 2;
-                    int b = (int) (pointF.y + eyesDistance * 1.8f);
-                    if (b > maxY - 2) b = maxY - 2;
-                    //String pres=l+","+t+","+r+","+b;
-                    //Toast.makeText(mActivity, pres, Toast.LENGTH_LONG).show();
-                    // 人脸框
-                    //mSurface.setFaceRect(l, t, r, b);
-
-                    // http work
-                    if (!MyApplication.idcardfdv_working) {
-                        MyApplication.idcardfdv_working = true;
-                        //int rate = 4;
-                        float crate = 1;
-                        PointF cpoint = new PointF();
-                        face.getMidPoint(cpoint);
-                        cpoint.x = cpoint.x * crate;
-                        cpoint.y = cpoint.y * crate;
-                        float ed = face.eyesDistance() * crate * 2;
-
-                        int cmaxX = (int) (mScreenBm.getWidth() * crate);
-                        int cmaxY = (int) (mScreenBm.getHeight() * crate);
-
-                        //if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                        //    cpoint.x = cmaxX - cpoint.x;
-                        //}
-
-                        int cl = (int) (cpoint.x - ed);
-                        if (cl < 0) cl = 0;
-                        int ct = (int) (cpoint.y - ed);
-                        if (ct < 0) ct = 0;
-                        int cr = (int) (cpoint.x + ed);
-                        if (cr > cmaxX) cr = cmaxX;
-                        int cb = (int) (cpoint.y + ed);
-                        if (cb > cmaxY) cb = cmaxY;
-                        Rect croprect = new Rect(cl, ct, cr, cb);
-
-
-
-                        FaceHttpThread httpth = new FaceHttpThread(mActivity, mInfoLayout,
-                                mScreenBm, croprect,
-                                MyApplication.idcardfdvUrl);
-
-                        httpth.start();
-                    }
+                // 检查读卡器状态
+                // 权限确认中或已经成功打开时再进行人脸认证
+                int readerState = mActivity.mIDCardReader.GetInitState();
+                if(IDCardReader.STATE_NO_DEV == readerState ||
+                        IDCardReader.STATE_INIT_ERR == readerState) {
+                    String errMsg = "未找到身份证读卡器!";
+                    Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
+                    //synchronized (CameraActivityData.fdvlock) {
+                        CameraActivityData.idcardfdv_working = false;
+                    //}
+                    return;
                 }
-                else
-                    mSurface.setFaceRect(0, 0, 0, 0);
-            } else
-                mSurface.setFaceRect(0, 0, 0, 0);
+                else if(IDCardReader.STATE_REFUSE_PERMISSION == readerState){
+                    String errMsg = "无权限访问身份证读卡器!";
+                    Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
+                    //synchronized (CameraActivityData.fdvlock) {
+                        CameraActivityData.idcardfdv_working = false;
+                    //}
+                    return;
+                }
+
+                mActivity.setHelpImgVisibility(View.VISIBLE);
+                // set info layout
+                if(null != mInfoLayout) {
+                    mInfoLayout.resetCameraImage();
+                    mInfoLayout.resetIdcardPhoto();
+                    mInfoLayout.setResultSimilarity("--%");
+                    mInfoLayout.resetResultIcon();
+                }
+
+                // 读卡器读卡线程
+                //synchronized(CameraActivityData.fdvlock) {
+                    CameraActivityData.idcardfdv_idcardstate = IDCardReadThread.IDCARD_STATE_NONE;
+                //}
+                IDCardReadThread readcard = new IDCardReadThread(mActivity, mActivity.mIDCardReadHandler);
+                readcard.start();
+
+                // http work
+                FaceHttpThread httpth = new FaceHttpThread(mActivity, mInfoLayout,
+                            mScreenBm, face,
+                            MyApplication.idcardfdvUrl);
+
+                httpth.start();
+
+            }
+            else {
+                // 无人脸
+                //synchronized (CameraActivityData.fdvlock) {
+                    CameraActivityData.idcardfdv_working = false;
+                //}
+            }
         }
         catch(Exception e){
+            //synchronized(CameraActivityData.fdvlock){
+                CameraActivityData.idcardfdv_working = false;
+            //}
             e.printStackTrace();
         }
     }
@@ -296,7 +249,6 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                 croprect.bottom-croprect.top,
                 null, false);
 
-        Rect faceRect = new Rect();
         String verify_photo_feat = "";
 
         List<Bitmap> verify_photos = new ArrayList<>();
@@ -306,27 +258,36 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         }
         else if(1 == MyApplication.idcardfdv_requestType) {
             // image feat
-            verify_photo_feat = MyApplication.AiFdrScIns.get_camera_feat(vbm,faceRect);
+            synchronized(CameraActivityData.AiFdrSclock) {
+                verify_photo_feat = MyApplication.AiFdrScIns.get_camera_feat2(croprect);
+            }
             activity.mDebugLayout.addText("camera face:"+
-                                            "L("+faceRect.left+")"+
-                                            "T("+faceRect.top+")"+
-                                            "R("+faceRect.right+")"+
-                                            "B("+faceRect.bottom+")\n");
+                                            "L("+croprect.left+")"+
+                                            "T("+croprect.top+")"+
+                                            "R("+croprect.right+")"+
+                                            "B("+croprect.bottom+")\n");
             certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
         }
 
-
         // 等待身份证读卡，bitmap生成完成
-        while(MyApplication.idcardfdv_idcardstate != IDCardReadThread.IDCARD_ALL_OK){
-            if (MyApplication.idcardfdv_idcardstate == IDCardReadThread.IDCARD_ERR_READERR) {
+        int st = 0;
+        //synchronized(CameraActivityData.fdvlock){
+            st = CameraActivityData.idcardfdv_idcardstate;
+        //}
+        while(st != IDCardReadThread.IDCARD_ALL_OK){
+            if (st == IDCardReadThread.IDCARD_ERR_READERR) {
                 activity.mDebugLayout.addText("IDCard read error!\n");
-                MyApplication.idcardfdv_working = false;
-                CameraActivity.startBrightnessWork(activity, infoL);
+                //synchronized(CameraActivityData.fdvlock){
+                    CameraActivityData.idcardfdv_working = false;
+                //}
                 return;
             }
 
             try {
                 Thread.sleep(100);
+                //synchronized(CameraActivityData.fdvlock){
+                    st = CameraActivityData.idcardfdv_idcardstate;
+                //}
             } catch (InterruptedException e){
                 e.printStackTrace();
             }
@@ -334,20 +295,9 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
 
         if ( verify_photo_feat.equals("")) {
             activity.mDebugLayout.addText("verify photo feat: null\n");
-            MyApplication.idcardfdv_working = false;
-            return;
-        }
-
-        // photo feat
-        MyApplication.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(MyApplication.PhotoImage, faceRect);
-        if(MyApplication.PhotoImageFeat.equals("")) {
-            CameraActivityData.Idcard_id = "";
-            CameraActivityData.Idcard_issuedate = "";
-            MyApplication.PhotoImageData = null;
-            MyApplication.PhotoImage = null;
-
-            activity.mDebugLayout.addText("idcard photo feat: null\n");
-            MyApplication.idcardfdv_working = false;
+            //synchronized(CameraActivityData.fdvlock){
+                CameraActivityData.idcardfdv_working = false;
+            //}
             return;
         }
 
@@ -357,15 +307,15 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
         //Bitmap bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.zp);
         String idcard_photo = null;
         if(0 == MyApplication.idcardfdv_requestType) {
-            idcard_photo = "data:image/jpeg;base64," + B64Util.bitmapToBase64(MyApplication.PhotoImage);
+            idcard_photo = "data:image/jpeg;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage);
         }
         else if(1 == MyApplication.idcardfdv_requestType) {
-            idcard_photo = MyApplication.PhotoImageFeat;
+            idcard_photo = CameraActivityData.PhotoImageFeat;
         }
         // set info layout
         if(null != infoL) {
             infoL.setCameraImage(verify_photo);
-            infoL.setIdcardPhoto(MyApplication.PhotoImage);
+            infoL.setIdcardPhoto(CameraActivityData.PhotoImage);
             infoL.setResultSimilarity("--%");
             infoL.resetResultIcon();
         }
@@ -417,19 +367,23 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                 Long fdvtime = dt.getTime() - MyApplication.idcardfdvCnt;
                 cbctx.mDebugLayout.addText("FDV Time:"+fdvtime+"\n");
 
-                MyApplication.idcardfdv_working = false;
                 CameraActivity.startBrightnessWork(cbctx, infolayout);
+                CameraActivity.delayResumeFdvWork(2*1000);
             }
 
             @Override
             public void onFailure(int errno) {
                 cbctx.mDebugLayout.addText("network failed!\n");
-                MyApplication.idcardfdv_working = false;
-                CameraActivity.startBrightnessWork(cbctx, infolayout);
+
+
                 if( 3 == errno){
                     // fdv failed
                 }
-                else{ /* others*/ }
+                else{  } // others
+
+                Toast.makeText(cbctx, "网络请求错误！", Toast.LENGTH_SHORT).show();
+                CameraActivity.startBrightnessWork(cbctx, infolayout);
+                CameraActivity.delayResumeFdvWork(2*1000);
             }
         };
 
@@ -443,6 +397,7 @@ public class FaceTask extends AsyncTask<Void, Void, FaceDetector.Face>{
                     verify_photos,
                     null,//certstream,
                     reqcb);
+
     }
 
     private static class FaceHttpThread extends Thread {

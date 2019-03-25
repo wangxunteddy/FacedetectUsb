@@ -25,15 +25,24 @@ public class IDCardReadHandler extends Handler {
                     activity.setHelpImgVisibility(View.INVISIBLE);
                     String errMsg = "身份证读卡失败!";
                     Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();
+                    // 屏幕亮度及信息清理Timer
+                    CameraActivity.startBrightnessWork(activity, activity.mInfoLayout);
                 }
-                MyApplication.idcardfdv_idcardstate = IDCardReadThread.IDCARD_ERR_READERR;
+
+                //synchronized(CameraActivityData.fdvlock) {
+                    CameraActivityData.idcardfdv_idcardstate = IDCardReadThread.IDCARD_ERR_READERR;
+                //}
                 break;
             case IDCardReadThread.IDCARD_READ_OK:
                 if (activity != null)
                     activity.setHelpImgVisibility(View.INVISIBLE);
                 break;
             case IDCardReadThread.IDCARD_ALL_OK:
-                MyApplication.idcardfdv_idcardstate = IDCardReadThread.IDCARD_ALL_OK;
+                if (activity != null)
+                    activity.setHelpImgVisibility(View.INVISIBLE);
+                //synchronized(CameraActivityData.fdvlock) {
+                    CameraActivityData.idcardfdv_idcardstate = IDCardReadThread.IDCARD_ALL_OK;
+                //}
                 break;
             default:
                 break;

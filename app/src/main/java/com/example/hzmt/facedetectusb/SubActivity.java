@@ -33,11 +33,11 @@ public class SubActivity extends AppCompatActivity {
             //byte[] data = intent.getByteArrayExtra("facedata");
             int reqtype = intent.getIntExtra("RequestType", -1);
             if(reqtype == CameraActivityData.REQ_TYPE_IDCARDFDV){
-                byte[] data = MyApplication.PhotoImageData;
+                byte[] data = MyApplication.TestImageData;
                 Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
                 mFaceView.setImageBitmap(bmp);
             } else {
-                byte[] data = MyApplication.PhotoImageData;
+                byte[] data = MyApplication.TestImageData;
                 int cameraid = intent.getIntExtra("cameraid", -1);
                 if (cameraid >= 0) {
                     Bitmap bm = CameraMgt.getBitmapFromBytes(data, cameraid, 1);
@@ -45,7 +45,7 @@ public class SubActivity extends AppCompatActivity {
                 }
             }
 
-            MyApplication.PhotoImageData = null;
+            MyApplication.TestImageData = null;
         }
     }
 }

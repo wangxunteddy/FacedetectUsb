@@ -56,12 +56,13 @@ public class CameraActivity extends AppCompatActivity {
     private CameraMgt mCameraMgt;
     private SurfaceView mPreviewSV;
     private SurfaceDraw mFaceRect;
-    private InfoLayout mInfoLayout;
+    public  InfoLayout mInfoLayout;
     private ImageView mHelpImg;
     private FaceTask mFaceTask;
 
     public DebugLayout mDebugLayout;
     public IDCardReader mIDCardReader;
+    public IDCardReadHandler mIDCardReadHandler;
 
 
     @Override
@@ -207,6 +208,7 @@ public class CameraActivity extends AppCompatActivity {
         // IDCardReader
         mIDCardReader = new IDCardReader();
         mIDCardReader.OpenIDCardReader(this);
+        mIDCardReadHandler = new IDCardReadHandler(this);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED){
@@ -338,7 +340,11 @@ public class CameraActivity extends AppCompatActivity {
                 }
             }
 
-            if (MyApplication.idcardfdv_working == false) {
+            boolean working = false;
+            //synchronized(CameraActivityData.fdvlock){
+                working = CameraActivityData.idcardfdv_working;
+            //}
+            if (!working) {
                 mFaceTask = new FaceTask(CameraActivity.this,
                         data,
                         mCameraMgt.getCurrentCameraId(),
@@ -346,6 +352,10 @@ public class CameraActivity extends AppCompatActivity {
                         mInfoLayout,
                         mFaceRect,
                         mCameraMgt.getCameraView());
+
+                //synchronized(CameraActivityData.fdvlock){
+                    CameraActivityData.idcardfdv_working = true;
+                //}
                 mFaceTask.execute((Void) null);
             }
 
@@ -363,7 +373,7 @@ public class CameraActivity extends AppCompatActivity {
             Intent intent = new Intent();
             intent.setClass(CameraActivity.this, SubActivity.class);
             //intent.putExtra("facedata", data);
-            MyApplication.PhotoImageData = data;
+            MyApplication.TestImageData = data;
             intent.putExtra("cameraid", mCameraMgt.getCurrentCameraId());
             //setResult(CameraActivityData.REQ_TYPE_REGISTER,intent);
             startActivity(intent);
@@ -409,8 +419,13 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    public void setHelpImgVisibility(int visibility){
-        mHelpImg.setVisibility(visibility);
+    public void setHelpImgVisibility(final int visibility){
+        mHelpImg.post(new Runnable(){
+            @Override
+            public void run() {
+                mHelpImg.setVisibility(visibility);
+            }
+        });
     }
 
     @Override
@@ -449,7 +464,9 @@ public class CameraActivity extends AppCompatActivity {
         MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
         WindowManager.LayoutParams params = activity.getWindow().getAttributes();
         params.screenBrightness = 0.5f;
-        activity.getWindow().setAttributes(params);
+ //       activity.getWindow().setAttributes(params);
+        Window w = activity.getWindow();
+        w.setAttributes(params);
         MyApplication.BrightnessHandler.postDelayed(MyApplication.BrightnessRunnable,10*1000);
     }
 
@@ -460,6 +477,20 @@ public class CameraActivity extends AppCompatActivity {
         activity.getWindow().setAttributes(params);
     }
     // ===========================================================
+
+    public static void delayResumeFdvWork(long delayMillis){
+        Handler handler = new Handler();
+        Runnable work = new Runnable() {
+            @Override
+            public void run() {
+                //synchronized(CameraActivityData.fdvlock){
+                    CameraActivityData.idcardfdv_working = false;
+                //}
+            }
+        };
+
+        handler.postDelayed(work,delayMillis);
+    }
 }
 
 

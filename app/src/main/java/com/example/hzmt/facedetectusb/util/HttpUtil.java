@@ -48,7 +48,7 @@ public class HttpUtil {
             if (statusCode == 200) {
                 inputStream = urlConnection.getInputStream();
                 String result = streamToString(inputStream);
-                Log.e("JsonObjectRequest", result);
+                //Log.e("JsonObjectRequest", result);
                 resultJSON = new JSONObject(result);
             }
         }catch(Exception e) {
