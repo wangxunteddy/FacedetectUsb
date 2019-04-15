@@ -16,6 +16,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                // 此处指定生成的apk文件名
+                outputFileName = "FacedetectUsb.apk"
+            }
+    }
+    lintOptions {
+        disable 'GoogleAppIndexingWarning'
+    }
     productFlavors {
     }
     repositories {
@@ -40,8 +50,6 @@ dependencies {
     implementation 'eu.the4thfloor.volley:com.android.volley:2015.05.28'
     testImplementation 'junit:junit:4.12'
     implementation files('libs/idcardfdv.jar')
-    implementation files('libs/jna-4.5.0.jar')
-    implementation files('libs/jna-platform-4.5.0.jar')
     implementation files('libs/invs_usb.jar')
     implementation files('libs/AiFdrScPkg.jar')
 }

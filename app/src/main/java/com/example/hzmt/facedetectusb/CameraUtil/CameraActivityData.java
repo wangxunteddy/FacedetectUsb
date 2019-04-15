@@ -33,6 +33,7 @@ public class CameraActivityData {
     public static byte[] PhotoImageData = null;
     public static Bitmap PhotoImage;
     public static String PhotoImageFeat;
+    public static Bitmap CameraImage;
 
     public static boolean idcardfdv_working = false;
 

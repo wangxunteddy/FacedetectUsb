@@ -2,7 +2,9 @@ package com.example.hzmt.facedetectusb.CameraUtil;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
 import android.os.Environment;
@@ -33,6 +35,9 @@ import android.location.LocationListener;
 import android.provider.Settings;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -74,6 +79,20 @@ public class CameraActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams. FLAG_FULLSCREEN ,
                 WindowManager.LayoutParams. FLAG_FULLSCREEN);
         setContentView(R.layout.activity_camera);
+
+        // service
+        Intent uploadIntent = new Intent();
+        ComponentName cn = new ComponentName("com.hzmt.idcardfdvupload", "com.hzmt.idcardfdvupload.UploadSrv");
+        uploadIntent.setComponent(cn);
+        uploadIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startService(uploadIntent);
+
+        Intent upgradeIntent = new Intent();
+        ComponentName cn2 = new ComponentName("com.hzmt.idcardfdvupgrade", "com.hzmt.idcardfdvupgrade.UpgradeSrv");
+        upgradeIntent.setComponent(cn2);
+        upgradeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startService(upgradeIntent);
+
 
         // intent data
         Intent intent=getIntent();
@@ -141,8 +160,8 @@ public class CameraActivity extends AppCompatActivity {
         // Android 6.0 运行时权限
         String[] permissions = new String[]
                 {
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                 //       Manifest.permission.ACCESS_FINE_LOCATION,
+                 //       Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.CAMERA,
                         Manifest.permission.READ_EXTERNAL_STORAGE
                 };
@@ -491,6 +510,53 @@ public class CameraActivity extends AppCompatActivity {
 
         handler.postDelayed(work,delayMillis);
     }
+
+    /**
+     * 保存图片
+     */
+    public static void saveUploadBitmapJPEG(Bitmap bitmap, String prename) {
+        // 图片存放路径
+        String uploadDir = "/sdcard/fdrmodel/UPLOAD";
+
+        try {
+            File dirFile = new File(uploadDir);
+            if (!dirFile.exists()) {
+                dirFile.mkdirs();
+            }
+            File file = new File(uploadDir, prename + ".jpeg");
+            FileOutputStream fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            fos.flush();
+            fos.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static void saveUploadBitmapBMP(byte[] data, String prename) {
+        // 图片存放路径
+        String uploadDir = "/sdcard/fdrmodel/UPLOAD";
+
+        try {
+            File dirFile = new File(uploadDir);
+            if (!dirFile.exists()) {
+                dirFile.mkdirs();
+            }
+            File file = new File(uploadDir, prename + ".bmp");
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(data);
+            fos.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
 }
 
 

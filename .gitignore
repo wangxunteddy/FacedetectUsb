@@ -8,3 +8,7 @@
 /captures
 .externalNativeBuild
 .idea/
+app/libs/arm64-v8a/
+app/libs/armeabi-v7a/
+app/libs/x86/
+app/libs/x86_64/

@@ -326,9 +326,14 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
             @Override
             public void onSuccess(JSONObject object) {
                 Log.e("IdcardFdv cb", object.toString());
+                boolean saveUpload = false;
+                double sim = 0.0f;
+                String serial_no = "";
                 try {
                     if (object.getInt("Err_no") == 0){
-                        Double sim = object.getDouble("Similarity");
+                        serial_no = object.getString("Serial_No");
+
+                        sim = object.getDouble("Similarity");
                         //String retstr = "相似度: " + sim;
                         //Toast.makeText(cbctx, retstr, Toast.LENGTH_LONG).show();
                         String retstr = String.format("%.1f%%",sim * 100);
@@ -338,11 +343,11 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                         if(sim > CameraActivityData.SimThreshold) {
                             infolayout.setResultIconPass();
 
-                            Boolean action = true;
+                            boolean action = true;
                             Date dt =new Date();
                             Long nowTime= dt.getTime();
                             if(MyApplication.accessControlCnt != null){
-                                Long spaceTime = (nowTime - MyApplication.accessControlCnt)/1000;
+                                long spaceTime = (nowTime - MyApplication.accessControlCnt)/1000;
                                 if(spaceTime < 3)
                                     action = false;
                                 // Log.e("SpaceTime:", space.toString());
@@ -358,17 +363,28 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                         else{
                             infolayout.setResultIconNotPass();
                         }
+                        saveUpload = true;
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
                 Date dt = new Date();
-                Long fdvtime = dt.getTime() - MyApplication.idcardfdvCnt;
+                long fdvtime = dt.getTime() - MyApplication.idcardfdvCnt;
                 cbctx.mDebugLayout.addText("FDV Time:"+fdvtime+"\n");
 
                 CameraActivity.startBrightnessWork(cbctx, infolayout);
                 CameraActivity.delayResumeFdvWork(2*1000);
+
+                if(saveUpload){
+                    int simInt = (int)(sim * 1000);
+                    String prename = String.format("%s_%s_%03d",
+                                                CameraActivityData.Idcard_id,
+                                                serial_no,
+                                                simInt);
+                    CameraActivity.saveUploadBitmapBMP(CameraActivityData.PhotoImageData,prename+"_0");
+                    CameraActivity.saveUploadBitmapJPEG(CameraActivityData.CameraImage,prename+"_1");
+                }
             }
 
             @Override
@@ -387,6 +403,7 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
             }
         };
 
+        CameraActivityData.CameraImage = vbm; // mScreenBm
         IdcardFdv.request(activity,
                     MyApplication.idcardfdv_requestType,
                     urlstring,
