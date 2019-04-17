@@ -152,10 +152,6 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
         //        face.right,face.bottom);
         //Log.e("cropImg",crops);
         //===================
-        if(face.left < 0) face.left = 0;
-        if(face.top < 0) face.top = 0;
-        if(face.right > mScreenBm.getWidth()) face.right = mScreenBm.getWidth();
-        if(face.bottom > mScreenBm.getHeight()) face.bottom = mScreenBm.getHeight();
 
 
         if(detect){
@@ -182,23 +178,24 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
 
                 // 检查读卡器状态
                 // 权限确认中或已经成功打开时再进行人脸认证
-                int readerState = mActivity.mIDCardReader.GetInitState();
-                if(IDCardReader.STATE_NO_DEV == readerState ||
-                        IDCardReader.STATE_INIT_ERR == readerState) {
-                    String errMsg = "未找到身份证读卡器!";
-                    Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
-                    //synchronized (CameraActivityData.fdvlock) {
+                if(!MyApplication.DebugNoIDCardReader) {
+                    int readerState = mActivity.mIDCardReader.GetInitState();
+                    if (IDCardReader.STATE_NO_DEV == readerState ||
+                            IDCardReader.STATE_INIT_ERR == readerState) {
+                        String errMsg = "未找到身份证读卡器!";
+                        Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
+                        //synchronized (CameraActivityData.fdvlock) {
                         CameraActivityData.idcardfdv_working = false;
-                    //}
-                    return;
-                }
-                else if(IDCardReader.STATE_REFUSE_PERMISSION == readerState){
-                    String errMsg = "无权限访问身份证读卡器!";
-                    Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
-                    //synchronized (CameraActivityData.fdvlock) {
+                        //}
+                        return;
+                    } else if (IDCardReader.STATE_REFUSE_PERMISSION == readerState) {
+                        String errMsg = "无权限访问身份证读卡器!";
+                        Toast.makeText(mActivity, errMsg, Toast.LENGTH_SHORT).show();
+                        //synchronized (CameraActivityData.fdvlock) {
                         CameraActivityData.idcardfdv_working = false;
-                    //}
-                    return;
+                        //}
+                        return;
+                    }
                 }
 
                 mActivity.setHelpImgVisibility(View.VISIBLE);
@@ -241,8 +238,13 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
     }
 
     private static void idcardfdvRequest(CameraActivity activity,InfoLayout infoL,
-                                         Bitmap vbm,Rect croprect,
+                                         Bitmap vbm,Rect facerect,
                                          String urlstring){
+        Rect croprect = new Rect(facerect);
+        if(croprect.left < 0) croprect.left = 0;
+        if(croprect.top < 0) croprect.top = 0;
+        if(croprect.right > vbm.getWidth()) croprect.right = vbm.getWidth();
+        if(croprect.bottom > vbm.getHeight()) croprect.bottom = vbm.getHeight();
         Bitmap verify_photo = Bitmap.createBitmap(vbm,
                 croprect.left, croprect.top,
                 croprect.right - croprect.left,
@@ -259,13 +261,13 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
         else if(1 == MyApplication.idcardfdv_requestType) {
             // image feat
             synchronized(CameraActivityData.AiFdrSclock) {
-                verify_photo_feat = MyApplication.AiFdrScIns.get_camera_feat2(croprect);
+                verify_photo_feat = MyApplication.AiFdrScIns.get_camera_feat2(facerect);
             }
             activity.mDebugLayout.addText("camera face:"+
-                                            "L("+croprect.left+")"+
-                                            "T("+croprect.top+")"+
-                                            "R("+croprect.right+")"+
-                                            "B("+croprect.bottom+")\n");
+                                            "L("+facerect.left+")"+
+                                            "T("+facerect.top+")"+
+                                            "R("+facerect.right+")"+
+                                            "B("+facerect.bottom+")\n");
             certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
         }
 
@@ -382,8 +384,10 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                                                 CameraActivityData.Idcard_id,
                                                 serial_no,
                                                 simInt);
-                    CameraActivity.saveUploadBitmapBMP(CameraActivityData.PhotoImageData,prename+"_0");
-                    CameraActivity.saveUploadBitmapJPEG(CameraActivityData.CameraImage,prename+"_1");
+                    if(!MyApplication.DebugNoIDCardReader) {
+                        CameraActivity.saveUploadBitmapBMP(CameraActivityData.PhotoImageData, prename + "_0");
+                        CameraActivity.saveUploadBitmapJPEG(CameraActivityData.CameraImage, prename + "_1");
+                    }
                 }
             }
 

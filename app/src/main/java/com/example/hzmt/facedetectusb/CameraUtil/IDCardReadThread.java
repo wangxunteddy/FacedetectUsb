@@ -43,28 +43,36 @@ public class IDCardReadThread extends Thread {
 
         CameraActivity activity = mActivity.get();
 
-        int readerState = activity.mIDCardReader.GetInitState();
-        while(IDCardReader.STATE_REQUUST_PERMISSION == readerState){
-            // 读卡器权限确认中，等待确认结果
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e){
-                e.printStackTrace();
+        if(!MyApplication.DebugNoIDCardReader) {
+            int readerState = activity.mIDCardReader.GetInitState();
+            while (IDCardReader.STATE_REQUUST_PERMISSION == readerState) {
+                // 读卡器权限确认中，等待确认结果
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                readerState = activity.mIDCardReader.GetInitState();
             }
 
-            readerState = activity.mIDCardReader.GetInitState();
-        }
-
-        if(readerState != IDCardReader.STATE_INIT_OK) {
-            Message msg = new Message();
-            msg.what = IDCARD_ERR_READERR;
-            mHandler.sendMessage(msg);
-            return;
+            if (readerState != IDCardReader.STATE_INIT_OK) {
+                Message msg = new Message();
+                msg.what = IDCARD_ERR_READERR;
+                mHandler.sendMessage(msg);
+                return;
+            }
         }
 
         boolean bIDCardNoChange = false;
         int timeout = 15 * 1000;
         while(true){
+            if(MyApplication.DebugNoIDCardReader) {
+                Message msg = new Message();
+                msg.what = IDCARD_READ_OK;
+                mHandler.sendMessage(msg);
+                break;
+            }
             int iRet = activity.mIDCardReader.Authenticate_IDCard();
 
             if(0 == iRet) {
@@ -114,16 +122,21 @@ public class IDCardReadThread extends Thread {
 
         // 身份证照片处理
         if(!bIDCardNoChange) {
-            byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
-            //======================== test
-            //CameraActivityData.Idcard_id = "332526198407210014";
-            //CameraActivityData.Idcard_issuedate = "20131212-20241212";
-            //BitmapFactory.Options opts = new BitmapFactory.Options();
-            //opts.inScaled = false;
-            //Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.zp,opts);
-            //CameraActivityData.PhotoImage = bm;
-            //========================
-            CameraActivityData.PhotoImage = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
+            if(MyApplication.DebugNoIDCardReader){
+                //======================== test
+                CameraActivityData.Idcard_id = "332526198407210014";
+                CameraActivityData.Idcard_issuedate = "20131212-20241212";
+                BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inScaled = false;
+                Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.zp,opts);
+                CameraActivityData.PhotoImage = bm;
+                //========================
+            }
+            else {
+                byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
+                CameraActivityData.PhotoImage = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
+            }
+
             Rect faceRect = new Rect();
             synchronized (CameraActivityData.AiFdrSclock) {
                 CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(CameraActivityData.PhotoImage, faceRect);

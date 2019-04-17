@@ -215,7 +215,6 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void initWork(boolean bStartCamera){
-        // initLocation();
 
         // 初始化AiFdrSc
         MyApplication.AiFdrScIns = new AiFdrScPkg();
@@ -237,82 +236,9 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    private void initLocation(){
-        boolean bFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED;
-        boolean bCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED;
-        if(!bFine && !bCoarse)
-            return;
-
-        LocationManager locationManager = (LocationManager) getSystemService(this.LOCATION_SERVICE);
-        //   LocationProvider gpsProvider = locationManager.getProvider(LocationManager.GPS_PROVIDER);
-        //   LocationProvider netProvider = locationManager.getProvider(LocationManager.NETWORK_PROVIDER);
-
-        if(bFine){
-            // try gps
-            if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                        3000, 1.0f, mLocationListener);
-                //获取Location
-                Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                if(location!=null){
-                    //showLocation(location);
-                }
-                return;
-            }
-
-            // try network
-            if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
-                if(bCoarse){
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                            3000, 1.0f, mLocationListener);
-                    Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                    if(location!=null){
-                        //showLocation(location);
-                    }
-                    return;
-                }
-            }
-
-            Toast.makeText(this, "无法定位，请打开定位服务", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent();
-            intent.setAction(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            startActivityForResult(intent, 100);
-        }
-        else{
-            // try network
-            if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                        3000, 1.0f, mLocationListener);
-                Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                if(location!=null){
-                    //showLocation(location);
-                }
-                return;
-            }
-
-            Toast.makeText(this, "无法定位，请打开定位服务", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent();
-            intent.setAction(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            startActivityForResult(intent, 100);
-        }
-    }
-
-    private void showLocation(Location location){
-        String locationStr = " 纬度：" + location.getLatitude() +"   "
-                + "经度：" + location.getLongitude();
-        //location.distanceTo(Location dest);
-        Toast.makeText(this, locationStr, Toast.LENGTH_SHORT).show();
-    }
-
     private void permissionToast(int code){
         String msg;
         switch(code){
-            case PERMISSION_FINE_LOCATION:
-            case PERMISSION_COARSE_LOCATION:
-                msg = "请在设置里打开定位服务权限以使用定位信息！";
-                break;
             case PERMISSION_CAMERA:
                 msg = "请在设置里打开摄像头使用权限！";
                 break;
@@ -321,9 +247,6 @@ public class CameraActivity extends AppCompatActivity {
                 break;
             case TOAST_OFFSET_PERMISSION_RATIONALE+PERMISSION_FINE_LOCATION:
                 msg = "无法使用GPS定位服务！";
-                break;
-            case TOAST_OFFSET_PERMISSION_RATIONALE+PERMISSION_COARSE_LOCATION:
-                msg = "无法使用网络定位服务！";
                 break;
             case TOAST_OFFSET_PERMISSION_RATIONALE+PERMISSION_CAMERA:
                 msg = "无法使用摄像头，请退出重试！";
@@ -403,38 +326,10 @@ public class CameraActivity extends AppCompatActivity {
         }
     };
 
-    private LocationListener mLocationListener = new LocationListener(){
-        @Override
-        public void onLocationChanged(Location location){
-            //得到纬度
-            double latitude = location.getLatitude();
-            //得到经度
-            double longitude = location.getLongitude();
-
-            showLocation(location);
-        }
-
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-            // TODO Auto-generated method stub
-        }
-
-        @Override
-        public void onProviderEnabled(String provider) {
-            // TODO Auto-generated method stub
-        }
-
-        @Override
-        public void onProviderDisabled(String provider) {
-            // TODO Auto-generated method stub
-        }
-    };
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == 100){
-            initLocation();
         }
     }
 
