@@ -18,13 +18,15 @@ import com.invs.invsUtil;
 import com.invs.invswlt;
 
 import java.lang.ref.WeakReference;
+import java.util.Date;
 
 public class IDCardReadThread extends Thread {
     public static final int IDCARD_ERR_DEVERR = -1;
     public static final int IDCARD_ERR_READERR = -2;
     public static final int IDCARD_STATE_NONE = 0;
     public static final int IDCARD_READ_OK = 1;
-    public static final int IDCARD_ALL_OK = 2;
+    public static final int IDCARD_IMG_OK = 2;
+    public static final int IDCARD_ALL_OK = 10;
     private final WeakReference<CameraActivity> mActivity;
     private IDCardReadHandler mHandler;
 
@@ -65,7 +67,7 @@ public class IDCardReadThread extends Thread {
         }
 
         boolean bIDCardNoChange = false;
-        int timeout = 15 * 1000;
+        int timeout = 5 * 1000;
         while(true){
             if(MyApplication.DebugNoIDCardReader) {
                 Message msg = new Message();
@@ -136,11 +138,25 @@ public class IDCardReadThread extends Thread {
                 byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
                 CameraActivityData.PhotoImage = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
             }
+            Message msg = new Message();
+            msg.what = IDCARD_IMG_OK;
+            mHandler.sendMessage(msg);
 
+
+            long stime = new Date().getTime();
             Rect faceRect = new Rect();
             synchronized (CameraActivityData.AiFdrSclock) {
                 CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(CameraActivityData.PhotoImage, faceRect);
+                //MyApplication.AiFdrScIns.dectect_photo_face(CameraActivityData.PhotoImage, faceRect);
+                //CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat2(faceRect);
             }
+            long feattime = new Date().getTime() - stime;
+            activity.mDebugLayout.addText("PhotoFeatTime:"+feattime+"\n");
+        }
+        else{
+            Message msg = new Message();
+            msg.what = IDCARD_IMG_OK;
+            mHandler.sendMessage(msg);
         }
 
         if(CameraActivityData.PhotoImageFeat.equals("")){

@@ -7,6 +7,9 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
@@ -68,6 +71,10 @@ public class CameraActivity extends AppCompatActivity {
     public DebugLayout mDebugLayout;
     public IDCardReader mIDCardReader;
     public IDCardReadHandler mIDCardReadHandler;
+
+    // sound
+    public AudioTrack mATRight;
+    public AudioTrack mATWrong;
 
 
     @Override
@@ -149,6 +156,21 @@ public class CameraActivity extends AppCompatActivity {
         mInfoLayout = new InfoLayout(this);
 
         mHelpImg = findViewById(R.id.helpimg);
+
+        // sound data
+        new Thread() {
+            @Override
+            public void run() {
+                mATRight = getAudioPlayer(R.raw.right);
+            }
+        }.start();
+
+        new Thread() {
+            @Override
+            public void run() {
+                mATWrong = getAudioPlayer(R.raw.wrong);
+            }
+        }.start();
 
         // brightness
         CameraActivity.startBrightnessWork(this, mInfoLayout);
@@ -345,13 +367,53 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         mCameraMgt.closeCamera();
+        mATRight.release();
+        mATWrong.release();
         super.onBackPressed();
     }
 
     @Override
     public void onDestroy(){
         mIDCardReader.CloseIDCardReader();
+        mATRight.release();
+        mATWrong.release();
         super.onDestroy();
+    }
+
+    // 加载声音数据
+    private AudioTrack getAudioPlayer(int resId){
+        AudioTrack at = null;
+        byte[] wavData;
+        try {
+            InputStream in = getResources().openRawResource(resId);
+            wavData = new byte[in.available()];
+            try {
+                 ByteArrayOutputStream out = new ByteArrayOutputStream();
+                 for (int b; (b = in.read()) != -1; ) {
+                    out.write(b);
+                 }
+                wavData = out.toByteArray();
+            } finally {
+                in.close();
+            }
+
+            // pcm数据长度。注意wav文件如更改，读取位置可能需修改
+            int pcmlen = 0;
+            pcmlen+=wavData[0x4d];
+            pcmlen=pcmlen*256+wavData[0x4c];
+            pcmlen=pcmlen*256+wavData[0x4b];
+            pcmlen=pcmlen*256+wavData[0x4a];
+
+            at = new AudioTrack(AudioManager.STREAM_MUSIC, 44100,
+                                AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                                wavData.length, AudioTrack.MODE_STATIC);
+
+            at.write(wavData, 0x4e, pcmlen);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return at;
     }
 
     // ===========================================================

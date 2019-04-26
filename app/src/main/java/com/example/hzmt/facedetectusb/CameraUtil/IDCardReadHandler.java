@@ -34,8 +34,14 @@ public class IDCardReadHandler extends Handler {
                 //}
                 break;
             case IDCardReadThread.IDCARD_READ_OK:
-                if (activity != null)
+                if (activity != null) {
                     activity.setHelpImgVisibility(View.INVISIBLE);
+                }
+                break;
+            case IDCardReadThread.IDCARD_IMG_OK:
+                if (activity != null) {
+                    activity.mInfoLayout.setIdcardPhoto(CameraActivityData.PhotoImage);
+                }
                 break;
             case IDCardReadThread.IDCARD_ALL_OK:
                 if (activity != null)

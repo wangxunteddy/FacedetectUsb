@@ -145,7 +145,10 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
 
         // face detect
         Rect face = new Rect();
+        //long stime = new Date().getTime();
         boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mScreenBm,face);
+        //long detecttime = new Date().getTime() - stime;
+        //mActivity.mDebugLayout.addText("DetectTime:"+detecttime+"\n");
         //==================
         //String crops=String.format("l:%d,t:%d,r:%d,b:%d",
         //        face.left,face.top,
@@ -250,6 +253,9 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                 croprect.right - croprect.left,
                 croprect.bottom-croprect.top,
                 null, false);
+        if(null != infoL) {
+            infoL.setCameraImage(verify_photo);
+        }
 
         String verify_photo_feat = "";
 
@@ -260,9 +266,14 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
         }
         else if(1 == MyApplication.idcardfdv_requestType) {
             // image feat
+
             synchronized(CameraActivityData.AiFdrSclock) {
+                long stime = new Date().getTime();
                 verify_photo_feat = MyApplication.AiFdrScIns.get_camera_feat2(facerect);
+                long feattime = new Date().getTime() - stime;
+                activity.mDebugLayout.addText("CameraFeatTime:"+feattime+"\n");
             }
+
             activity.mDebugLayout.addText("camera face:"+
                                             "L("+facerect.left+")"+
                                             "T("+facerect.top+")"+
@@ -316,8 +327,8 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
         }
         // set info layout
         if(null != infoL) {
-            infoL.setCameraImage(verify_photo);
-            infoL.setIdcardPhoto(CameraActivityData.PhotoImage);
+            //infoL.setCameraImage(verify_photo);
+            //infoL.setIdcardPhoto(CameraActivityData.PhotoImage);
             infoL.setResultSimilarity("--%");
             infoL.resetResultIcon();
         }
@@ -341,13 +352,29 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                         String retstr = String.format("%.1f%%",sim * 100);
                         infolayout.setResultSimilarity(retstr);
 
-                        // access control
                         if(sim > CameraActivityData.SimThreshold) {
                             infolayout.setResultIconPass();
 
+                            // 播放提示音
+                            new Thread(){
+                                @Override
+                                public void run() {
+                                    cbctx.mATRight.stop();
+                                    cbctx.mATRight.play();
+                                    try {
+                                        Thread.sleep(1100);
+                                        cbctx.mATRight.stop();
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }.start();
+
+                            // access control
                             boolean action = true;
                             Date dt =new Date();
                             Long nowTime= dt.getTime();
+
                             if(MyApplication.accessControlCnt != null){
                                 long spaceTime = (nowTime - MyApplication.accessControlCnt)/1000;
                                 if(spaceTime < 3)
@@ -361,9 +388,24 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                                 // );
                                 MyApplication.accessControlCnt = nowTime;
                             }
+
                         }
                         else{
                             infolayout.setResultIconNotPass();
+                            // 播放提示音
+                            new Thread(){
+                                @Override
+                                public void run() {
+                                    cbctx.mATWrong.stop();
+                                    cbctx.mATWrong.play();
+                                    try {
+                                        Thread.sleep(1100);
+                                        cbctx.mATWrong.stop();
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }.start();
                         }
                         saveUpload = true;
                     }
@@ -374,7 +416,6 @@ public class FaceTask extends AsyncTask<Void, Void, Rect>{
                 Date dt = new Date();
                 long fdvtime = dt.getTime() - MyApplication.idcardfdvCnt;
                 cbctx.mDebugLayout.addText("FDV Time:"+fdvtime+"\n");
-
                 CameraActivity.startBrightnessWork(cbctx, infolayout);
                 CameraActivity.delayResumeFdvWork(2*1000);
 
