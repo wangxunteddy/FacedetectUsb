@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "com.example.hzmt.com.hzmt.IDCardFdvUsb"
+        applicationId "com.hzmt.com.hzmt.IDCardFdvUsb"
         minSdkVersion 19
         targetSdkVersion 26
         versionCode 1
