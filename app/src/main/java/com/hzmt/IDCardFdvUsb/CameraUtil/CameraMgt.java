@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -21,7 +21,7 @@ import android.hardware.Camera;
 import android.util.Log;
 import android.view.ViewGroup;
 
-import com.example.hzmt.facedetectusb.MainActivity;
+import com.hzmt.IDCardFdvUsb.MainActivity;
 
 import java.io.IOException;
 import java.util.List;

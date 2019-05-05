@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.hzmt.facedetectusb">
+    package="com.hzmt.IDCardFdvUsb">
 
     <!--uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /-->
     <!--uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /-->
@@ -16,7 +16,7 @@
     <uses-permission android:name="idcardfdvupgrade.permission.Upgrade"/>
 
     <application
-        android:name="com.example.hzmt.facedetectusb.MyApplication"
+        android:name="com.hzmt.com.hzmt.IDCardFdvUsb.MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -24,12 +24,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity
-            android:name="com.example.hzmt.facedetectusb.MainActivity"
+            android:name="com.hzmt.com.hzmt.IDCardFdvUsb.MainActivity"
             android:screenOrientation = "landscape">
         </activity>
 
         <activity
-            android:name="com.example.hzmt.facedetectusb.CameraUtil.CameraActivity"
+            android:name="com.hzmt.com.hzmt.IDCardFdvUsb.CameraUtil.CameraActivity"
             android:screenOrientation = "landscape">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
@@ -39,7 +39,7 @@
         </activity>
 
         <activity
-            android:name="com.example.hzmt.facedetectusb.SubActivity"
+            android:name="com.hzmt.com.hzmt.IDCardFdvUsb.SubActivity"
             android:screenOrientation = "landscape">
         </activity>
 

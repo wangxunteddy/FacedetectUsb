@@ -1,15 +1,14 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.util.Base64;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
-import com.example.hzmt.facedetectusb.MyApplication;
-import com.example.hzmt.facedetectusb.util.B64Util;
-import com.example.hzmt.facedetectusb.util.IdcardFdv;
+import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.util.B64Util;
+import com.hzmt.IDCardFdvUsb.util.IdcardFdv;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -17,9 +16,6 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 public class FdvWorkThread extends Thread {
     private final WeakReference<CameraActivity> mActivity;

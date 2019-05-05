@@ -1,12 +1,10 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.res.Resources;
 import android.text.InputFilter;
 import android.view.Gravity;
-import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -14,12 +12,10 @@ import android.widget.LinearLayout;
 import android.widget.Button;
 import android.view.View;
 import android.view.ViewGroup;
-import android.graphics.Point;
 import android.graphics.Bitmap;
 import android.text.InputType;
 
-import android.support.v7.app.AppCompatActivity;
-import com.example.hzmt.facedetectusb.R;
+import com.hzmt.IDCardFdvUsb.R;
 
 /**
  * Created by xun on 2018/7/26.

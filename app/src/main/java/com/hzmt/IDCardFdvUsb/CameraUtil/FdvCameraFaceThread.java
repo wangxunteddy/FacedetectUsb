@@ -1,15 +1,13 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
-import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
-import android.media.FaceDetector;
 import android.os.AsyncTask;
 
-import com.example.hzmt.facedetectusb.MyApplication;
+import com.hzmt.IDCardFdvUsb.MyApplication;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.ref.WeakReference;
@@ -68,29 +66,8 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
         mBaseBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
 
         // face detect
-        boolean  detect = false;
         Rect face = new Rect();
-        if(0 == MyApplication.idcardfdv_AiDetect){
-            Bitmap bmCopy = mBaseBm.copy(Bitmap.Config.RGB_565, true); // 必须为RGB_565
-            FaceDetector faceDetector = new FaceDetector(bmCopy.getWidth(),
-                    bmCopy.getHeight(), CameraActivityData.FaceDetectNum);
-            FaceDetector.Face[] faces = new FaceDetector.Face[CameraActivityData.FaceDetectNum];
-            int faceNum = faceDetector.findFaces(bmCopy, faces);
-            if(faceNum > 0) {
-                PointF pointF = new PointF();
-                faces[0].getMidPoint(pointF);//获取人脸中心点
-                float eyesDistance = faces[0].eyesDistance();//获取人脸两眼的间距
-                face.left = (int) (pointF.x - eyesDistance * 1.1f);
-                face.top = (int) (pointF.y - eyesDistance * 1.4f);
-                face.right = (int) (pointF.x + eyesDistance * 1.1f);
-                face.bottom = (int) (pointF.y + eyesDistance * 1.8f);
-
-                detect = true;
-            }
-        }
-        else{
-            detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
-        }
+        boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
 
         if(detect){
             //===================

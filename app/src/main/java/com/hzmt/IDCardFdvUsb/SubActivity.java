@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb;
+package com.hzmt.IDCardFdvUsb;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -10,8 +10,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-import com.example.hzmt.facedetectusb.CameraUtil.CameraActivityData;
-import com.example.hzmt.facedetectusb.CameraUtil.CameraMgt;
+import com.hzmt.IDCardFdvUsb.CameraUtil.CameraActivityData;
+import com.hzmt.IDCardFdvUsb.CameraUtil.CameraMgt;
 
 public class SubActivity extends AppCompatActivity {
 

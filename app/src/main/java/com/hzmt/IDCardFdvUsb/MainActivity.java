@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb;
+package com.hzmt.IDCardFdvUsb;
 
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
@@ -9,8 +9,8 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.example.hzmt.facedetectusb.CameraUtil.CameraActivity;
-import com.example.hzmt.facedetectusb.CameraUtil.CameraActivityData;
+import com.hzmt.IDCardFdvUsb.CameraUtil.CameraActivity;
+import com.hzmt.IDCardFdvUsb.CameraUtil.CameraActivityData;
 
 public class MainActivity extends AppCompatActivity {
     private Button mBtnLogin;

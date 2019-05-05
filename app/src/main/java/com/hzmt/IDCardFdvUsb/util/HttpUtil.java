@@ -1,53 +1,29 @@
-package com.example.hzmt.facedetectusb.util;
+package com.hzmt.IDCardFdvUsb.util;
 
 import android.util.Log;
 
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
-import java.security.cert.CertificateFactory;
-import java.security.cert.Certificate;
-import java.security.KeyStore;
-
-
-import java.io.DataOutputStream;
-
 
 /**
- * Created by xun on 2017/10/15.
+ * Created by xun on 2017/8/31.
  */
 
-public class HttpsUtil {
-    public static JSONObject JsonObjectRequest(InputStream certstream, JSONObject data, String urlstring){
+public class HttpUtil {
+
+    public static JSONObject JsonObjectRequest(JSONObject data, String urlstring){
         InputStream inputStream = null;
-        HttpsURLConnection urlConnection = null;
+        HttpURLConnection urlConnection = null;
         JSONObject resultJSON = null;
         try{
-            if(null == certstream)
-                HTTPSTrustManager.allowAllSSL();//信任所有证书
-
             URL url = new URL(urlstring);
-            urlConnection = (HttpsURLConnection) url.openConnection();
-            if(null != certstream) {
-                //InputStream in = context.getAssets().open(certfile);
-                urlConnection.setSSLSocketFactory(getSSLContext(certstream).getSocketFactory());
-                //设置ip授权认证：如果已经安装该证书，可以不设置，否则需要设置
-                urlConnection.setHostnameVerifier(new HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname, SSLSession session) {
-                        return true;
-                    }
-                });
-            }
-
+            urlConnection = (HttpURLConnection) url.openConnection();
             // 设置连接超时时间
             urlConnection.setConnectTimeout(5 * 1000);
             //设置从主机读取数据超时
@@ -74,9 +50,6 @@ public class HttpsUtil {
                 String result = streamToString(inputStream);
                 //Log.e("JsonObjectRequest", result);
                 resultJSON = new JSONObject(result);
-            }
-            else{
-                Log.e("https response:", Integer.toString(statusCode));
             }
         }catch(Exception e) {
             //Log.e("JsonObjectRequest", e.toString());
@@ -122,26 +95,4 @@ public class HttpsUtil {
             return null;
         }
     }
-
-    public static SSLContext getSSLContext(InputStream in){
-        SSLContext context = null;
-        try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Certificate ca = cf.generateCertificate(in);
-            KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-            keystore.load(null, null);
-            keystore.setCertificateEntry("ca", ca);
-            String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
-            tmf.init(keystore);
-            // Create an SSLContext that uses our TrustManager
-            context = SSLContext.getInstance("TLS");
-            context.init(null, tmf.getTrustManagers(), null);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-        return context;
-    }
 }
-
-

@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.content.Context;
 import android.util.AttributeSet;

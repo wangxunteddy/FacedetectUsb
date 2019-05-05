@@ -1,11 +1,10 @@
-package com.example.hzmt.facedetectusb.util;
+package com.hzmt.IDCardFdvUsb.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PointF;
 import android.media.FaceDetector;
 import android.os.AsyncTask;
-import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -13,11 +12,9 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -25,7 +22,7 @@ import java.util.regex.Matcher;
 
 import android.content.Context;
 
-import com.example.hzmt.facedetectusb.MyApplication;
+import com.hzmt.IDCardFdvUsb.MyApplication;
 //import android.util.Log;
 
 

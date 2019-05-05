@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -7,11 +7,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.invs.UsbSam;
-import com.invs.invsUtil;
 import com.invs.invswlt;
 
 public class IDCardReader extends UsbSam{

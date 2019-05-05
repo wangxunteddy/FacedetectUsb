@@ -1,7 +1,6 @@
-package com.example.hzmt.facedetectusb;
+package com.hzmt.IDCardFdvUsb;
 
 import android.app.Application;
-import android.graphics.Bitmap;
 import android.os.Handler;
 
 import com.android.volley.RequestQueue;
@@ -41,7 +40,6 @@ public class MyApplication extends Application {
 
     // debug and test
     public static byte[] TestImageData = null;
-    public static int idcardfdv_AiDetect = 1;       // use AiFdrSc lib to detect
     public static int idcardfdv_requestType = 0;    // image fdv
     public static boolean DebugNoIDCardReader = false;
 

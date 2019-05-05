@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb;
+package com.hzmt.IDCardFdvUsb;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.example.hzmt.facedetect", appContext.getPackageName());
+        assertEquals("com.hzmt.facedetect", appContext.getPackageName());
     }
 }

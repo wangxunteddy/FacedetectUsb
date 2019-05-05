@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.util;
+package com.hzmt.IDCardFdvUsb.util;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

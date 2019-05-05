@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.util;
+package com.hzmt.IDCardFdvUsb.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -29,8 +29,6 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.text.Spannable;
 import android.text.Selection;
-
-import com.example.hzmt.facedetectusb.MyApplication;
 
 import org.json.JSONException;
 import org.json.JSONObject;

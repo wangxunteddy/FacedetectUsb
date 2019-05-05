@@ -1,14 +1,11 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
 import android.widget.Toast;
 
-import com.example.hzmt.facedetectusb.MyApplication;
-
 import java.lang.ref.WeakReference;
-import java.util.Date;
 
 public class IDCardReadHandler extends Handler {
     private final WeakReference<CameraActivity> mActivity;

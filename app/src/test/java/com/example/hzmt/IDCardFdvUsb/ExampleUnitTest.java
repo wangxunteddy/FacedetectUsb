@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb;
+package com.hzmt.IDCardFdvUsb;
 
 import org.junit.Test;
 

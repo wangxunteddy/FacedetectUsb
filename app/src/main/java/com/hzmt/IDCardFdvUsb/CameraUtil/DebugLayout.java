@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.app.Activity;
 import android.text.method.ScrollingMovementMethod;
@@ -7,7 +7,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.example.hzmt.facedetectusb.R;
+import com.hzmt.IDCardFdvUsb.R;
 
 public class DebugLayout {
     private Activity mActivity;

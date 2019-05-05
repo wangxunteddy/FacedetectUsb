@@ -1,24 +1,14 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
-import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
-import android.widget.Toast;
 
-import com.example.hzmt.facedetectusb.MyApplication;
-import com.example.hzmt.facedetectusb.R;
-import com.invs.UsbBase;
-import com.invs.UsbSam;
-import com.invs.invsIdCard;
-import com.invs.invsUtil;
-import com.invs.invswlt;
+import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.R;
 
 import java.lang.ref.WeakReference;
-import java.util.Date;
 
 public class IDCardReadThread extends Thread {
     public static final int IDCARD_ERR_DEVERR = -1;

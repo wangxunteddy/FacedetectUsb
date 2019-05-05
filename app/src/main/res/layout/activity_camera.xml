@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:keepScreenOn="true"
-    tools:context="com.example.hzmt.facedetectusb.CameraUtil.CameraActivity">
+    tools:context="com.hzmt.IDCardFdvUsb.CameraUtil.CameraActivity">
 
     <SurfaceView
         android:id="@+id/camera_preview"
@@ -15,7 +15,7 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:layout_constraintLeft_creator="1" />
 
-    <com.example.hzmt.facedetectusb.CameraUtil.SurfaceDraw
+    <com.hzmt.IDCardFdvUsb.CameraUtil.SurfaceDraw
         android:id="@+id/surface_draw"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.Manifest;
 import android.app.Activity;
@@ -10,14 +10,12 @@ import android.graphics.Point;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
-import android.util.Log;
 import android.view.SurfaceView;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -25,17 +23,7 @@ import android.view.View;
 import android.hardware.Camera;
 import android.view.Window;
 import android.view.WindowManager;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.hardware.usb.UsbManager;
-
-import android.location.Location;
-import android.location.LocationManager;
-import android.location.LocationListener;
-import android.provider.Settings;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -49,14 +37,13 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.example.hzmt.facedetectusb.MyApplication;
-import com.example.hzmt.facedetectusb.R;
-import com.example.hzmt.facedetectusb.SubActivity;
+import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.R;
+import com.hzmt.IDCardFdvUsb.SubActivity;
 
 //import com.invs.UsbBase;
-import com.example.hzmt.facedetectusb.util.IdcardFdvRegister;
+import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
-import com.invs.UsbBase;
 
 public class CameraActivity extends AppCompatActivity {
     private static final int PERMISSION_FINE_LOCATION = 0;

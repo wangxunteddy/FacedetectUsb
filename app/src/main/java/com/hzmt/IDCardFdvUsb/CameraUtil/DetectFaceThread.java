@@ -1,16 +1,14 @@
-package com.example.hzmt.facedetectusb.CameraUtil;
+package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
-import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
-import android.media.FaceDetector;
 import android.os.AsyncTask;
 import android.widget.Toast;
 
-import com.example.hzmt.facedetectusb.MyApplication;
+import com.hzmt.IDCardFdvUsb.MyApplication;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.ref.WeakReference;
@@ -60,31 +58,8 @@ public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
         Bitmap fullPreviewBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
 
         // face detect
-        boolean detect = false;
         Rect face = new Rect();
-        if(0 == MyApplication.idcardfdv_AiDetect){
-            // FaceDetector
-            Bitmap bmcopy = fullPreviewBm.copy(Bitmap.Config.RGB_565, true); // 必须为RGB_565
-            FaceDetector faceDetector = new FaceDetector(bmcopy.getWidth(),
-                    bmcopy.getHeight(), CameraActivityData.FaceDetectNum);
-            FaceDetector.Face[] faces = new FaceDetector.Face[CameraActivityData.FaceDetectNum];
-            int faceNum = faceDetector.findFaces(bmcopy, faces);
-            if(faceNum > 0){
-                PointF pointF = new PointF();
-                faces[0].getMidPoint(pointF);//获取人脸中心点
-                float eyesDistance = faces[0].eyesDistance();//获取人脸两眼的间距
-                Rect rect = new Rect();
-                rect.left = (int)(pointF.x - eyesDistance);
-                rect.top = (int)(pointF.y - eyesDistance);
-                rect.right = (int)(pointF.x + eyesDistance);
-                rect.bottom = (int)(pointF.y + eyesDistance);
-                detect = true;
-            }
-        }
-        else {
-            // if(1 == MyApplication.idcardfdv_AiDetect)
-            detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
-        }
+        boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
 
         if (detect) {
             return face;

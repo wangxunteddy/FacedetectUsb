@@ -1,4 +1,4 @@
-package com.example.hzmt.facedetectusb.util;
+package com.hzmt.IDCardFdvUsb.util;
 
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
