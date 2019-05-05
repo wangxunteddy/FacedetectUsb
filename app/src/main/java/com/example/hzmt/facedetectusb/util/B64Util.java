@@ -17,14 +17,14 @@ public class B64Util {
      * @param bitmap
      * @return
      */
-    public static String bitmapToBase64(Bitmap bitmap) {
+    public static String bitmapToBase64(Bitmap bitmap,Bitmap.CompressFormat format) {
 
         String result = null;
         ByteArrayOutputStream baos = null;
         try {
             if (bitmap != null) {
                 baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                bitmap.compress(format, 100, baos);
 
                 baos.flush();
                 baos.close();

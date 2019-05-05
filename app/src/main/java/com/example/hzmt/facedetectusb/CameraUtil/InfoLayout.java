@@ -182,7 +182,7 @@ public class InfoLayout {
             dialog.setPositiveButton("确定", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    CameraActivity.startBrightnessWork(mActivity, InfoLayout.this);
+                    CameraActivity.startBrightnessWork(mActivity);
 
                     String thStr = edit.getText().toString();
                     if(thStr.isEmpty())
@@ -199,7 +199,7 @@ public class InfoLayout {
             dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
-                    CameraActivity.startBrightnessWork(mActivity, InfoLayout.this);
+                    CameraActivity.startBrightnessWork(mActivity);
                 }
             });
 

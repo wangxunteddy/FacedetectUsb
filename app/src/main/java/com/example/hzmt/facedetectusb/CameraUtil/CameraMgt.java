@@ -143,8 +143,8 @@ public class CameraMgt {
             return;
 
         try {
-            // Camera,open() 默认返回的后置摄像头信息
-            mCamera = Camera.open(mCamIdx);//打开硬件摄像头，这里导包得时候一定要注意是android.hardware.Camera
+            // Camera.open() 默认返回的后置摄像头信息
+            mCamera = Camera.open();//Camera.open(mCamIdx);//打开硬件摄像头，这里导包得时候一定要注意是android.hardware.Camera
             //设置角度
             setCameraDisplayOrientation(mActivity, mCamIdx, mCamera);
             mCamera.setPreviewDisplay(mSurfaceView.getHolder());//通过SurfaceView显示取景画面
@@ -177,9 +177,9 @@ public class CameraMgt {
                 }
             }
             parameters.setPictureSize(picSize.width, picSize.height);
-            //========== for GuanHai=========
-           // parameters.setPreviewSize(1280, 960);
-           // parameters.setPictureSize(1280, 960);
+            //========== for SHANGZHU=========
+            parameters.setPreviewSize(1280, 720);
+            parameters.setPictureSize(1280, 720);
             //===============================
             List<String> focusModes = parameters.getSupportedFocusModes();
             if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {

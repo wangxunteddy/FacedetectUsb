@@ -21,11 +21,15 @@ public class MyApplication extends Application {
     public static String FaceDetectUrl = "http://192.168.1.12:8070/AppFaceDetect";
 
     public static AiFdrScPkg AiFdrScIns = null;
-    //public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
-    public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";
+    public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
+    //public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/idcardfdv";
+    //public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
     public static ByteArrayOutputStream certstream_baos = null;
-    public static Long idcardfdvCnt = null;
+    public static Long idcardfdvTotalCnt = null;
+    public static Long idcardfdvCameraCnt = null;
+    public static Long idcardfdvStepCnt = null;
+    public static Long idcardfdvStepCnt2 = null;
 
     public static Handler BrightnessHandler = null;
     public static Runnable BrightnessRunnable = null;
@@ -37,7 +41,8 @@ public class MyApplication extends Application {
 
     // debug and test
     public static byte[] TestImageData = null;
-    public static int idcardfdv_requestType = 1;    // feat fdv
+    public static int idcardfdv_AiDetect = 1;       // use AiFdrSc lib to detect
+    public static int idcardfdv_requestType = 0;    // image fdv
     public static boolean DebugNoIDCardReader = false;
 
     @Override

@@ -140,7 +140,7 @@ public class IDCardReader extends UsbSam{
 
     public String GetIssueDate() {
         String str;
-        str = this.mCard.getStart() + "-" + this.mCard.getEnd();
+        str = this.mCard.getStart();// + "-" + this.mCard.getEnd();
         return str;
     }
 

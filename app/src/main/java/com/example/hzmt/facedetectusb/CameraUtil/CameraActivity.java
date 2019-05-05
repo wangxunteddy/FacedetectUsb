@@ -37,12 +37,15 @@ import android.location.LocationManager;
 import android.location.LocationListener;
 import android.provider.Settings;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -51,6 +54,7 @@ import com.example.hzmt.facedetectusb.R;
 import com.example.hzmt.facedetectusb.SubActivity;
 
 //import com.invs.UsbBase;
+import com.example.hzmt.facedetectusb.util.IdcardFdvRegister;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
 import com.invs.UsbBase;
 
@@ -66,7 +70,6 @@ public class CameraActivity extends AppCompatActivity {
     private SurfaceDraw mFaceRect;
     public  InfoLayout mInfoLayout;
     private ImageView mHelpImg;
-    private FaceTask mFaceTask;
 
     public DebugLayout mDebugLayout;
     public IDCardReader mIDCardReader;
@@ -173,11 +176,13 @@ public class CameraActivity extends AppCompatActivity {
         }.start();
 
         // brightness
-        CameraActivity.startBrightnessWork(this, mInfoLayout);
+        CameraActivity.startBrightnessWork(this);
 
         // debug output
         mDebugLayout = new DebugLayout(this);
         mDebugLayout.setText("Debug:\n");
+        //mDebugLayout.addText(getExternalFilesDir(null).getAbsolutePath());
+
 
         // Android 6.0 运行时权限
         String[] permissions = new String[]
@@ -240,15 +245,23 @@ public class CameraActivity extends AppCompatActivity {
 
         // 初始化AiFdrSc
         MyApplication.AiFdrScIns = new AiFdrScPkg();
-        String path = Environment.getExternalStorageDirectory().getPath();
-        //path = path + "/fdrmodel/";
-        path = "/sdcard/fdrmodel/";
+        //String path = Environment.getExternalStorageDirectory().getPath();
+        String path = getExternalFilesDir(null).getAbsolutePath();
+        path = path + "/fdrmodel/";
+        String ver = getVersionStr(path+"version.txt");
+        mDebugLayout.addText(ver+"\n");
+        mDebugLayout.addText(MyApplication.AiFdrScIns.testJNI()+"\n");
+        //path = "/sdcard/fdrmodel/";
         MyApplication.AiFdrScIns.initAiFdrSc(path);
+        mDebugLayout.addText("models loaded!\n");
 
         // IDCardReader
         mIDCardReader = new IDCardReader();
         mIDCardReader.OpenIDCardReader(this);
         mIDCardReadHandler = new IDCardReadHandler(this);
+
+        // get regist info
+        IdcardFdvRegister.checkRegister(this);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED){
@@ -294,33 +307,25 @@ public class CameraActivity extends AppCompatActivity {
             //String pres = s.width+" x " +s.height;
             //Toast.makeText(CameraActivity.this, pres, Toast.LENGTH_LONG).show();
 
-            if(null != mFaceTask){
-                switch(mFaceTask.getStatus()){
-                    case RUNNING:
-                        return;
-                    case PENDING:
-                        mFaceTask.cancel(false);
-                        break;
-                }
-            }
 
-            boolean working = false;
-            //synchronized(CameraActivityData.fdvlock){
-                working = CameraActivityData.idcardfdv_working;
-            //}
-            if (!working) {
-                mFaceTask = new FaceTask(CameraActivity.this,
+            if(CameraActivityData.detect_face_enable){
+                DetectFaceThread detectFaceTh = new DetectFaceThread(CameraActivity.this,
                         data,
                         mCameraMgt.getCurrentCameraId(),
-                        camera,
-                        mInfoLayout,
-                        mFaceRect,
-                        mCameraMgt.getCameraView());
+                        camera);
 
-                //synchronized(CameraActivityData.fdvlock){
-                    CameraActivityData.idcardfdv_working = true;
-                //}
-                mFaceTask.execute((Void) null);
+                CameraActivityData.detect_face_enable = false;
+                detectFaceTh.execute((Void) null);
+            }
+
+            if(CameraActivityData.capture_face_enable){
+                FdvCameraFaceThread fdvCameraFaceTh = new FdvCameraFaceThread(CameraActivity.this,
+                        data,
+                        mCameraMgt.getCurrentCameraId(),
+                        camera);
+
+                CameraActivityData.capture_face_enable = false;
+                fdvCameraFaceTh.execute((Void) null);
             }
 
         }
@@ -418,7 +423,7 @@ public class CameraActivity extends AppCompatActivity {
 
     // ===========================================================
     // screen brightness
-    public static void startBrightnessWork(final Activity activity, final InfoLayout infoL){
+    public static void startBrightnessWork(final Activity activity){
         if(null == MyApplication.BrightnessHandler){
             MyApplication.BrightnessHandler = new Handler();
         }
@@ -430,10 +435,11 @@ public class CameraActivity extends AppCompatActivity {
                     params.screenBrightness = 0.005f;
                     activity.getWindow().setAttributes(params);
 
-                    infoL.resetCameraImage();
-                    infoL.resetIdcardPhoto();
-                    infoL.setResultSimilarity("--%");
-                    infoL.resetResultIcon();
+                    CameraActivityData.resume_work = true;
+                    //infoL.resetCameraImage();
+                    //infoL.resetIdcardPhoto();
+                    //infoL.setResultSimilarity("--%");
+                    //infoL.resetResultIcon();
                 }
             };
         }
@@ -454,18 +460,17 @@ public class CameraActivity extends AppCompatActivity {
     }
     // ===========================================================
 
-    public static void delayResumeFdvWork(long delayMillis){
-        Handler handler = new Handler();
-        Runnable work = new Runnable() {
-            @Override
-            public void run() {
-                //synchronized(CameraActivityData.fdvlock){
-                    CameraActivityData.idcardfdv_working = false;
-                //}
-            }
-        };
-
-        handler.postDelayed(work,delayMillis);
+    public void backToHelp()
+    {
+        mDebugLayout.addText("back to Help!\n");
+        //CameraActivityData.idcardfdv_cameraState = FdvCameraFaceThread.CAMERA_FACE_STATE_NONE;
+        //CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_STATE_NONE;
+        mInfoLayout.resetCameraImage();
+        mInfoLayout.resetIdcardPhoto();
+        mInfoLayout.setResultSimilarity("--%");
+        setHelpImgVisibility(View.VISIBLE);
+        CameraActivityData.CameraImage = null;
+        CameraActivityData.CameraImageFeat = "";
     }
 
     /**
@@ -514,6 +519,28 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
+    public static String getVersionStr(String path)
+    {
+        String retstr = "";
+        File vfile=new File(path);
+        if(vfile.exists()) {
+            try {
+                InputStream instream = new FileInputStream(vfile);
+                InputStreamReader inputreader = new InputStreamReader(instream);
+                BufferedReader buffreader = new BufferedReader(inputreader);
+                retstr = buffreader.readLine();
+                instream.close();
+            }
+            catch (java.io.FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return retstr;
+    }
 }
 
 

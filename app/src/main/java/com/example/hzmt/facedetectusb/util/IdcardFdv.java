@@ -24,6 +24,8 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import android.content.Context;
+
+import com.example.hzmt.facedetectusb.MyApplication;
 //import android.util.Log;
 
 
@@ -39,7 +41,6 @@ public class IdcardFdv {
                                 String idcard_issuedate,
                                 String idcard_photo,
                                 String verify_photo,
-                                List<Bitmap> verify_photos,
                                 InputStream certstream,
                                 RequestCallBack cb){
 
@@ -75,14 +76,15 @@ public class IdcardFdv {
             return;
         }
 
-        if(IdcardFdvRegister.checkRegister(context)){
+        String regno = IdcardFdvRegister.getRegisterdNo();
+        //if(IdcardFdvRegister.checkRegister(context)){
+        if(regno != null && !regno.equals("")){
             String sn = IdcardFdvRegister.getProductSn();
-            String regno = IdcardFdvRegister.getRegisterdNo();
             HttpsThread th = new HttpsThread(urlstring,
                     requestType,
                     idcard_id, idcard_issuedate,
                     sn, regno,
-                    idcard_photo,verify_photo,verify_photos,
+                    idcard_photo,verify_photo,
                     certstream, cb);
 
             th.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,(Void)null);
@@ -122,7 +124,6 @@ public class IdcardFdv {
             final String idcard_issuedate_p = idcard_issuedate;
             final String idcard_photo_p = idcard_photo;
             final String verify_photo_p = verify_photo;
-            final List<Bitmap> verify_photos_p = verify_photos;
             final InputStream certstream_p = new ByteArrayInputStream(baos.toByteArray());
             final RequestCallBack cb_p = cb;
             IdcardFdvRegister.RegisterCallBack regcallback = new IdcardFdvRegister.RegisterCallBack(){
@@ -132,7 +133,7 @@ public class IdcardFdv {
                             requestType_p,
                             idcard_id_p, idcard_issuedate_p,
                             sn,regno,
-                            idcard_photo_p,verify_photo_p, verify_photos_p,
+                            idcard_photo_p,verify_photo_p,
                             certstream_p, cb_p);
 
                     th.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,(Void)null);
@@ -167,7 +168,6 @@ public class IdcardFdv {
         private String registerno;
         private String idcard_photo;
         private String verify_photo;
-        private List<Bitmap> verify_photos;
         private InputStream certstream;
         private RequestCallBack callback;
 
@@ -179,7 +179,6 @@ public class IdcardFdv {
                            String registerno,
                            String idcard_photo,
                            String verify_photo,
-                           List<Bitmap> verify_photos,
                            InputStream certstream,
                            RequestCallBack callback){
             this.urlstring = urlstring;
@@ -190,7 +189,6 @@ public class IdcardFdv {
             this.registerno = registerno;
             this.idcard_photo = idcard_photo;
             this.verify_photo = verify_photo;
-            this.verify_photos = verify_photos;
             this.certstream = certstream;
             this.callback = callback;
         }
@@ -257,32 +255,21 @@ public class IdcardFdv {
                 map.put("idcard_issuedate", tempdata);
                 shaSrc += tempdata;
 
-                JSONArray jsonArray = new JSONArray();
                 if(0 == requestType) {
                     // image fdv
                     tempdata = idcard_photo;
                     map.put("idcard_photo", tempdata);
                     shaSrc += tempdata;
-
-                    for (Bitmap b : verify_photos) {
-                        //Bitmap bitmap = getBitmapFromBytes(b,1);
-                        //Bitmap cropbm = cropBitmapByFaceDetector(bitmap);
-                        Bitmap cropbm = b;
-                        if (null != cropbm) {
-                            String cropbmStr = "data:image/jpeg;base64," + bitmapToBase64(cropbm);
-                            jsonArray.put(cropbmStr);
-                            shaSrc += cropbmStr;
-                        }
-                    }
                 } else { // else if(1 == requestType) {
                     // feat fdv
                     tempdata = idcard_photo;
                     map.put("idcard_face_info", tempdata);
                     shaSrc += tempdata;
-
-                    jsonArray.put(verify_photo);
-                    shaSrc += verify_photo;
                 }
+
+                JSONArray jsonArray = new JSONArray();
+                jsonArray.put(verify_photo);
+                shaSrc += verify_photo;
 
                 if(jsonArray.length() == 0){
                     JSONObject resultJSON = null;
@@ -313,6 +300,10 @@ public class IdcardFdv {
                 e.printStackTrace();
             }
 
+            //===================
+            // test code
+            MyApplication.idcardfdvStepCnt2 = System.currentTimeMillis() - MyApplication.idcardfdvStepCnt;
+            //===================
             JSONObject resultJSON;
             if(null != certstream)
                 resultJSON = HttpsUtil.JsonObjectRequest(certstream,object,urlstring);
@@ -384,40 +375,5 @@ public class IdcardFdv {
                 0, 0, bm.getWidth(),  bm.getHeight(), null, true);
 
         return nbmp;
-    }
-
-    /**
-     * bitmap转为base64
-     * @param bitmap
-     * @return
-     */
-    private static String bitmapToBase64(Bitmap bitmap) {
-
-        String result = null;
-        ByteArrayOutputStream baos = null;
-        try {
-            if (bitmap != null) {
-                baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-
-                baos.flush();
-                baos.close();
-
-                byte[] bitmapBytes = baos.toByteArray();
-                result = Base64.encodeToString(bitmapBytes, Base64.DEFAULT);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (baos != null) {
-                    baos.flush();
-                    baos.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return result;
     }
 }

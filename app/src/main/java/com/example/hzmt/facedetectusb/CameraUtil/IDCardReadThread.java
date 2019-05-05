@@ -24,8 +24,9 @@ public class IDCardReadThread extends Thread {
     public static final int IDCARD_ERR_DEVERR = -1;
     public static final int IDCARD_ERR_READERR = -2;
     public static final int IDCARD_STATE_NONE = 0;
-    public static final int IDCARD_READ_OK = 1;
-    public static final int IDCARD_IMG_OK = 2;
+    public static final int IDCARD_READY = 1;
+    public static final int IDCARD_CHECK_OK = 2;
+    public static final int IDCARD_IMG_OK = 3;
     public static final int IDCARD_ALL_OK = 10;
     private final WeakReference<CameraActivity> mActivity;
     private IDCardReadHandler mHandler;
@@ -44,6 +45,12 @@ public class IDCardReadThread extends Thread {
         //CameraActivityData.PhotoImageFeat = "";
 
         CameraActivity activity = mActivity.get();
+        if(activity == null) {
+            Message msg = new Message();
+            msg.what = IDCARD_ERR_READERR;
+            mHandler.sendMessage(msg);
+            return;
+        }
 
         if(!MyApplication.DebugNoIDCardReader) {
             int readerState = activity.mIDCardReader.GetInitState();
@@ -66,18 +73,32 @@ public class IDCardReadThread extends Thread {
             }
         }
 
+
+        {
+            // 循环读卡准备就绪后的处理
+            Message msg = new Message();
+            msg.what = IDCARD_READY;
+            mHandler.sendMessage(msg);
+        }
+
         boolean bIDCardNoChange = false;
-        int timeout = 5 * 1000;
         while(true){
             if(MyApplication.DebugNoIDCardReader) {
                 Message msg = new Message();
-                msg.what = IDCARD_READ_OK;
+                msg.what = IDCARD_CHECK_OK;
                 mHandler.sendMessage(msg);
                 break;
             }
             int iRet = activity.mIDCardReader.Authenticate_IDCard();
 
             if(0 == iRet) {
+                // 开始计时
+                MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
+
+                Message msg = new Message();
+                msg.what = IDCARD_CHECK_OK;
+                mHandler.sendMessage(msg);
+
                 iRet = activity.mIDCardReader.Read_Content();
                 if(0 == iRet){
                     String tmpId = activity.mIDCardReader.GetPeopleIDCode();
@@ -91,9 +112,6 @@ public class IDCardReadThread extends Thread {
                         CameraActivityData.PhotoImageData = activity.mIDCardReader.GetPhotoDate();
                     }
 
-                    Message msg = new Message();
-                    msg.what = IDCARD_READ_OK;
-                    mHandler.sendMessage(msg);
 
                     String dbgstr;
                     activity.mDebugLayout.addText("read card: true\n");
@@ -105,29 +123,28 @@ public class IDCardReadThread extends Thread {
                 else
                     activity.mDebugLayout.addText("Read_Content: false,"+iRet+"\n");
             }
-            else
-                activity.mDebugLayout.addText("Authenticate: false,"+iRet+"\n");
+            else {
+                //activity.mDebugLayout.addText("Authenticate: false," + iRet + "\n");
+            }
 
             try {
                 Thread.sleep(300);
-                timeout -= 300;
-                if(timeout <=0) {
-                    Message msg = new Message();
-                    msg.what = IDCARD_ERR_READERR;
-                    mHandler.sendMessage(msg);
+                if(CameraActivityData.resume_work)
                     return;
-                }
             } catch (InterruptedException e){
                 e.printStackTrace();
             }
         }
+
+        if(CameraActivityData.resume_work)
+            return;
 
         // 身份证照片处理
         if(!bIDCardNoChange) {
             if(MyApplication.DebugNoIDCardReader){
                 //======================== test
                 CameraActivityData.Idcard_id = "332526198407210014";
-                CameraActivityData.Idcard_issuedate = "20131212-20241212";
+                CameraActivityData.Idcard_issuedate = "20131212";
                 BitmapFactory.Options opts = new BitmapFactory.Options();
                 opts.inScaled = false;
                 Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.zp,opts);
@@ -142,16 +159,19 @@ public class IDCardReadThread extends Thread {
             msg.what = IDCARD_IMG_OK;
             mHandler.sendMessage(msg);
 
+            CameraActivityData.PhotoImageFeat = "";
+            if(1 == MyApplication.idcardfdv_requestType) {
+                long stime = System.currentTimeMillis();
+                Rect faceRect = new Rect();
+                synchronized (CameraActivityData.AiFdrSclock) {
+                    CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(CameraActivityData.PhotoImage, faceRect);
 
-            long stime = new Date().getTime();
-            Rect faceRect = new Rect();
-            synchronized (CameraActivityData.AiFdrSclock) {
-                CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(CameraActivityData.PhotoImage, faceRect);
-                //MyApplication.AiFdrScIns.dectect_photo_face(CameraActivityData.PhotoImage, faceRect);
-                //CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat2(faceRect);
+                    //MyApplication.AiFdrScIns.dectect_photo_face(CameraActivityData.PhotoImage, faceRect);
+                    //CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat2(faceRect);
+                }
+                long feattime = System.currentTimeMillis() - stime;
+                activity.mDebugLayout.addText("PhotoFeatTime:" + feattime + "\n");
             }
-            long feattime = new Date().getTime() - stime;
-            activity.mDebugLayout.addText("PhotoFeatTime:"+feattime+"\n");
         }
         else{
             Message msg = new Message();
@@ -159,7 +179,8 @@ public class IDCardReadThread extends Thread {
             mHandler.sendMessage(msg);
         }
 
-        if(CameraActivityData.PhotoImageFeat.equals("")){
+        if(1 == MyApplication.idcardfdv_requestType &&
+                CameraActivityData.PhotoImageFeat.equals("")){
             CameraActivityData.Idcard_id = "";
             CameraActivityData.Idcard_issuedate = "";
             CameraActivityData.PhotoImageData = null;

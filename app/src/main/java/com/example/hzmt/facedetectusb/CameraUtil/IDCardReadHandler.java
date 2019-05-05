@@ -8,6 +8,7 @@ import android.widget.Toast;
 import com.example.hzmt.facedetectusb.MyApplication;
 
 import java.lang.ref.WeakReference;
+import java.util.Date;
 
 public class IDCardReadHandler extends Handler {
     private final WeakReference<CameraActivity> mActivity;
@@ -22,33 +23,40 @@ public class IDCardReadHandler extends Handler {
         switch(msg.what){
             case IDCardReadThread.IDCARD_ERR_READERR:
                 if (activity != null) {
-                    activity.setHelpImgVisibility(View.INVISIBLE);
+                    //activity.setHelpImgVisibility(View.INVISIBLE);
                     String errMsg = "身份证读卡失败!";
                     Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();
                     // 屏幕亮度及信息清理Timer
-                    CameraActivity.startBrightnessWork(activity, activity.mInfoLayout);
+                    CameraActivity.startBrightnessWork(activity);
                 }
 
-                //synchronized(CameraActivityData.fdvlock) {
-                    CameraActivityData.idcardfdv_idcardstate = IDCardReadThread.IDCARD_ERR_READERR;
-                //}
+                CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_ERR_READERR;
                 break;
-            case IDCardReadThread.IDCARD_READ_OK:
+            case IDCardReadThread.IDCARD_READY:
+                if (activity != null)
+                    CameraActivity.startBrightnessWork(activity);
+                break;
+            case IDCardReadThread.IDCARD_CHECK_OK:
+                if(CameraActivityData.resume_work)
+                    return;
+
                 if (activity != null) {
                     activity.setHelpImgVisibility(View.INVISIBLE);
+                    CameraActivity.startBrightnessWork(activity);
+                    // 开启捕捉人脸
+                    CameraActivityData.capture_face_enable = true;
                 }
                 break;
             case IDCardReadThread.IDCARD_IMG_OK:
-                if (activity != null) {
+                if (activity != null)
                     activity.mInfoLayout.setIdcardPhoto(CameraActivityData.PhotoImage);
-                }
+
                 break;
             case IDCardReadThread.IDCARD_ALL_OK:
                 if (activity != null)
                     activity.setHelpImgVisibility(View.INVISIBLE);
-                //synchronized(CameraActivityData.fdvlock) {
-                    CameraActivityData.idcardfdv_idcardstate = IDCardReadThread.IDCARD_ALL_OK;
-                //}
+
+                CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_ALL_OK;
                 break;
             default:
                 break;
