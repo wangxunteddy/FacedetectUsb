@@ -234,10 +234,10 @@ public class CameraActivity extends AppCompatActivity {
         MyApplication.AiFdrScIns = new AiFdrScPkg();
         //String path = Environment.getExternalStorageDirectory().getPath();
         String path = getExternalFilesDir(null).getAbsolutePath();
-        path = path + "/fdrmodel/";
         String ver = getVersionStr(path+"version.txt");
         mDebugLayout.addText(ver+"\n");
         mDebugLayout.addText(MyApplication.AiFdrScIns.testJNI()+"\n");
+        path = path + "/fdrmodel/";
         //path = "/sdcard/fdrmodel/";
         MyApplication.AiFdrScIns.initAiFdrSc(path);
         mDebugLayout.addText("models loaded!\n");

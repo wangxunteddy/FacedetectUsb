@@ -20,10 +20,10 @@ public class MyApplication extends Application {
     public static String FaceDetectUrl = "http://192.168.1.12:8070/AppFaceDetect";
 
     public static AiFdrScPkg AiFdrScIns = null;
-    public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
+    //public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/idcardfdv";
-    //public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
+    public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
     public static ByteArrayOutputStream certstream_baos = null;
     public static Long idcardfdvTotalCnt = null;
     public static Long idcardfdvCameraCnt = null;
