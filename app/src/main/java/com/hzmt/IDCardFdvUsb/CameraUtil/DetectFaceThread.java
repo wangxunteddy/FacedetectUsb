@@ -70,13 +70,15 @@ public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
 
     @Override
     protected void onPostExecute(Rect face) {
-        if (face != null) {
+        if (face != null ||
+                CameraActivityData.idcardfdv_NoIDCardMode) { // 无证模式直接放行
+
             CameraActivity activity = mActivity.get();
             if(activity != null){
                 CameraActivity.keepBright(activity);
                 // 检查读卡器状态
                 // 权限确认中或已经成功打开时再进行人脸认证
-                if(!MyApplication.DebugNoIDCardReader) {
+                if(!MyApplication.DebugNoIDCardReader || !CameraActivityData.idcardfdv_NoIDCardMode) {
                     int readerState = activity.mIDCardReader.GetInitState();
                     if (IDCardReader.STATE_NO_DEV == readerState ||
                             IDCardReader.STATE_INIT_ERR == readerState) {
@@ -104,7 +106,7 @@ public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
 
                 // 开始验证处理线程
                 CameraActivityData.resume_work = false;
-                mFdvWorkTh = new FdvWorkThread(activity);
+                mFdvWorkTh = new FdvWorkThread(activity, activity.mFdvWorkHandler);
                 mFdvWorkTh.start();
             }
             else

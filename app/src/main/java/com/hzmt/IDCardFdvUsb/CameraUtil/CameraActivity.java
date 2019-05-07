@@ -3,6 +3,7 @@ package com.hzmt.IDCardFdvUsb.CameraUtil;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
@@ -17,7 +18,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.view.SurfaceView;
+import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.view.View;
 import android.hardware.Camera;
@@ -57,10 +60,13 @@ public class CameraActivity extends AppCompatActivity {
     private SurfaceDraw mFaceRect;
     public  InfoLayout mInfoLayout;
     private ImageView mHelpImg;
+    public  LinearLayout mAttLayout;
 
     public DebugLayout mDebugLayout;
     public IDCardReader mIDCardReader;
     public IDCardReadHandler mIDCardReadHandler;
+
+    public FdvWorkHandler mFdvWorkHandler;
 
     // sound
     public AudioTrack mATRight;
@@ -123,7 +129,9 @@ public class CameraActivity extends AppCompatActivity {
         //mImgView.setVisibility(View.INVISIBLE);
 
         mPreviewSV = (SurfaceView) findViewById(R.id.camera_preview);
+//        mPreviewSV.setTranslationX(CameraActivityData.CameraActivity_width * 0.4f);
         mFaceRect = (SurfaceDraw) findViewById(R.id.surface_draw);
+//        mFaceRect.setTranslationX(CameraActivityData.CameraActivity_width * 0.4f);
         mFaceRect.setVisibility(View.VISIBLE);
 
         mCameraMgt = new CameraMgt(this, mPreviewSV, mFaceRect);
@@ -146,6 +154,11 @@ public class CameraActivity extends AppCompatActivity {
         mInfoLayout = new InfoLayout(this);
 
         mHelpImg = findViewById(R.id.helpimg);
+
+        // 公安提醒画面
+        mAttLayout = (LinearLayout) findViewById(R.id.att_layout);
+        ViewGroup.LayoutParams attLP = mAttLayout.getLayoutParams();
+        attLP.width = (int)(CameraActivityData.CameraActivity_width * 0.4);
 
         // sound data
         new Thread() {
@@ -247,12 +260,15 @@ public class CameraActivity extends AppCompatActivity {
         mIDCardReader.OpenIDCardReader(this);
         mIDCardReadHandler = new IDCardReadHandler(this);
 
+        // handler for fdv work
+        mFdvWorkHandler = new FdvWorkHandler(this);
+
         // get regist info
         IdcardFdvRegister.checkRegister(this);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED){
-            mCameraMgt.setPreviewCallback(mPreviewCB);
+            mCameraMgt.setPreviewCallback(mPreviewCB, mSubPreviewCB);
             mCameraMgt.setTakePictureJpegCallback(mTakePictrueJpegCB);
             mCameraMgt.openCamera(bStartCamera);
         }
@@ -305,7 +321,10 @@ public class CameraActivity extends AppCompatActivity {
                 detectFaceTh.execute((Void) null);
             }
 
-            if(CameraActivityData.capture_face_enable){
+            if(CameraActivityData.capture_face_enable) {
+                CameraActivityData.CameraImageDataSub = null;
+                CameraActivityData.capture_subface_done = false;
+                CameraActivityData.capture_subface_enable = true;
                 FdvCameraFaceThread fdvCameraFaceTh = new FdvCameraFaceThread(CameraActivity.this,
                         data,
                         mCameraMgt.getCurrentCameraId(),
@@ -315,6 +334,24 @@ public class CameraActivity extends AppCompatActivity {
                 fdvCameraFaceTh.execute((Void) null);
             }
 
+        }
+    };
+
+    private Camera.PreviewCallback mSubPreviewCB = new Camera.PreviewCallback() {
+        @Override
+        public void onPreviewFrame(byte[] data, Camera camera) {
+            if(camera.getParameters().getPreviewFormat() != ImageFormat.NV21)
+                return;
+
+            if(CameraActivityData.capture_subface_enable){
+                CameraActivityData.capture_subface_enable = false;
+                FdvSubCameraFaceThread fdvSubCameraFaceTh = new FdvSubCameraFaceThread(CameraActivity.this,
+                        data,
+                        mCameraMgt.getCurrentSubCameraId(),
+                        camera);
+
+                fdvSubCameraFaceTh.start();
+            }
         }
     };
 
@@ -356,12 +393,21 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
 
+    public void setAttLayOutVisibility(final int visibility){
+        mAttLayout.post(new Runnable(){
+            @Override
+            public void run() {
+                mAttLayout.setVisibility(visibility);
+            }
+        });
+    }
+
     @Override
     public void onBackPressed() {
-        mCameraMgt.closeCamera();
-        mATRight.release();
-        mATWrong.release();
-        super.onBackPressed();
+        //mCameraMgt.closeCamera();
+        //mATRight.release();
+        //mATWrong.release();
+        //super.onBackPressed();
     }
 
     @Override
@@ -370,6 +416,16 @@ public class CameraActivity extends AppCompatActivity {
         mATRight.release();
         mATWrong.release();
         super.onDestroy();
+    }
+
+    // 点击->无证入住
+    public void onHelpImgClick(View v){
+        CameraActivityData.idcardfdv_NoIDCardMode = true;
+    }
+
+    // 点击预览画面事件
+    public void onPreviewClick(View v){
+        mInfoLayout.clearIDCardNoInputFocus();
     }
 
     // 加载声音数据
@@ -411,6 +467,9 @@ public class CameraActivity extends AppCompatActivity {
     // ===========================================================
     // screen brightness
     public static void startBrightnessWork(final Activity activity){
+        if(activity == null)
+            return;
+
         if(null == MyApplication.BrightnessHandler){
             MyApplication.BrightnessHandler = new Handler();
         }
@@ -440,6 +499,9 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     public static void keepBright(Activity activity){
+        if(activity == null)
+            return;
+
         MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
         WindowManager.LayoutParams params = activity.getWindow().getAttributes();
         params.screenBrightness = 0.5f;
@@ -456,16 +518,19 @@ public class CameraActivity extends AppCompatActivity {
         mInfoLayout.resetIdcardPhoto();
         mInfoLayout.setResultSimilarity("--%");
         setHelpImgVisibility(View.VISIBLE);
+        setAttLayOutVisibility(View.INVISIBLE);
         CameraActivityData.CameraImage = null;
         CameraActivityData.CameraImageFeat = "";
+        CameraActivityData.idcardfdv_NoIDCardMode = false;
     }
 
     /**
      * 保存图片
      */
-    public static void saveUploadBitmapJPEG(Bitmap bitmap, String prename) {
+    public static void saveUploadBitmapJPEG(Context ctx, Bitmap bitmap, String prename) {
         // 图片存放路径
-        String uploadDir = "/sdcard/fdrmodel/UPLOAD";
+        String path = ctx.getExternalFilesDir(null).getAbsolutePath();
+        String uploadDir = path + "/UPLOAD/";
 
         try {
             File dirFile = new File(uploadDir);
@@ -485,9 +550,10 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
-    public static void saveUploadBitmapBMP(byte[] data, String prename) {
+    public static void saveUploadBitmapBMP(Context ctx, byte[] data, String prename) {
         // 图片存放路径
-        String uploadDir = "/sdcard/fdrmodel/UPLOAD";
+        String path = ctx.getExternalFilesDir(null).getAbsolutePath();
+        String uploadDir = path + "/UPLOAD/";
 
         try {
             File dirFile = new File(uploadDir);

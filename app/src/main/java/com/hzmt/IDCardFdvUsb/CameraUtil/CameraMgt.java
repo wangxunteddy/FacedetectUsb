@@ -37,11 +37,12 @@ public class CameraMgt {
     private SurfaceDraw mFaceRect;
 
     private Camera mCamera = null;
-    private int[] mCamList = {-1, -1};
-    private int mCamIdx = -1;
+    private Camera mCameraSub = null;
+    private int mCamIdx = 0;
+    private int mCamIdxSub = 1;
     private Boolean isPreview = false;
-    private Boolean isCamSelected = false;
     private Camera.PreviewCallback mCameraFrameWork = null;
+    private Camera.PreviewCallback mCameraFrameWorkSub = null;
     private Camera.PictureCallback mCameraTakePictureJpegCB = null;
 
     public CameraMgt(Activity activity, SurfaceView preview, SurfaceDraw facerect) {
@@ -64,13 +65,17 @@ public class CameraMgt {
     public int getCurrentCameraId() {
         return mCamIdx;
     }
+    public int getCurrentSubCameraId() {
+        return mCamIdxSub;
+    }
 
     public SurfaceView getCameraView() {
         return mSurfaceView;
     }
 
-    public void setPreviewCallback(Camera.PreviewCallback cb) {
+    public void setPreviewCallback(Camera.PreviewCallback cb, Camera.PreviewCallback cbSub) {
         mCameraFrameWork = cb;
+        mCameraFrameWorkSub = cbSub;
     }
 
     public void setTakePictureJpegCallback(Camera.PictureCallback cb) {
@@ -78,73 +83,41 @@ public class CameraMgt {
     }
 
     public void openCamera(boolean bStartCamera) {
-        String[] items = new String[]{"后置摄像头", "前置摄像头"};
-        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-        int cameraCount = Camera.getNumberOfCameras(); // get cameras number
-
-        for (int camIdx = 0; camIdx < cameraCount; camIdx++) {
-            Camera.getCameraInfo(camIdx, cameraInfo); // get camerainfo
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                mCamList[0] = camIdx;
-            }
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                mCamList[1] = camIdx;
-            }
-        }
-
-        if (mCamList[0] == -1 && mCamList[1] == -1)
-            return;
-        else if (mCamList[0] == -1) {
-            mCamIdx = mCamList[1];
-            isCamSelected = true;
-            //startCamera();
-            return;
-        } else if (mCamList[1] == -1) {
-            mCamIdx = mCamList[0];
-            isCamSelected = true;
-            //startCamera();
-            return;
-        } else
-            mCamIdx = mCamList[0];  // default
-
-        AlertDialog.Builder dialog = new AlertDialog.Builder(mActivity);
-        dialog.setTitle("选择摄像头");
-        dialog.setSingleChoiceItems(items, 0, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                mCamIdx = mCamList[which];
-            }
-        });
-        dialog.setPositiveButton("确定",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        isCamSelected = true;
-                        startCamera();
-                    }
-                });
-        //AlertDialog alertDialog = dialog.create();
-        //alertDialog.setCanceledOnTouchOutside(false);
-        //alertDialog.show();
-        {
-            mCamIdx = mCamList[1];
-            isCamSelected = true;
-            if(bStartCamera)
-                startCamera();
-        }
+        if(bStartCamera)
+            startCamera();
     }
 
     public void closeCamera(){
         stopCamera();
     }
 
+    private void stopCamera() {
+        if (isPreview) { //正在预览
+            if (mCamera != null) {
+                mCamera.setPreviewCallback(null);
+                mCamera.stopPreview();
+                mCamera.release();
+                mCamera = null;
+            }
+
+            if (mCameraSub != null) {
+                mCameraSub.setPreviewCallback(null);
+                mCameraSub.stopPreview();
+                mCameraSub.release();
+                mCameraSub = null;
+            }
+
+            isPreview = false;
+        }
+    }
+
     private void startCamera() {
-        if (!isCamSelected || isPreview)
+        if (isPreview)
             return;
 
         try {
             // Camera.open() 默认返回的后置摄像头信息
-            mCamera = Camera.open();//Camera.open(mCamIdx);//打开硬件摄像头，这里导包得时候一定要注意是android.hardware.Camera
+            mCamera = Camera.open(mCamIdx);//Camera.open(mCamIdx);//打开硬件摄像头，这里导包得时候一定要注意是android.hardware.Camera
             //设置角度
             setCameraDisplayOrientation(mActivity, mCamIdx, mCamera);
             mCamera.setPreviewDisplay(mSurfaceView.getHolder());//通过SurfaceView显示取景画面
@@ -193,23 +166,41 @@ public class CameraMgt {
             mCamera.setParameters(parameters);
             setSuitableSureface(); // 设置绘图窗口尺寸
             mCamera.setPreviewCallback(mCameraFrameWork);
+
+            // sub camera
+            mCameraSub = Camera.open(mCamIdxSub);
+            //设置角度
+            setCameraDisplayOrientation(mActivity, mCamIdxSub, mCameraSub);
+            // 设置参数
+            Camera.Parameters parametersSub = mCameraSub.getParameters();
+            List<Integer> previewFormatsSub = parametersSub.getSupportedPreviewFormats();
+            if (previewFormatsSub.contains(ImageFormat.NV21)) {
+                parametersSub.setPreviewFormat(ImageFormat.NV21);
+            }
+            List<Integer> picFormatsSub = parametersSub.getSupportedPictureFormats();
+            if (picFormatsSub.contains(PixelFormat.JPEG)) {
+                parametersSub.setPictureFormat(PixelFormat.JPEG);
+            }
+            //========== for SHANGZHU=========
+            parametersSub.setPreviewSize(1280, 720);
+            parametersSub.setPictureSize(1280, 720);
+            //================================
+            List<String> focusModesSub = parametersSub.getSupportedFocusModes();
+            if (focusModesSub.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                parametersSub.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            }
+            mCameraSub.setParameters(parametersSub);
+            mCameraSub.setPreviewCallback(mCameraFrameWorkSub);
+
+
             mCamera.startPreview();//开始预览
+            mCameraSub.startPreview();
             isPreview = true;//设置是否预览参数为真
         } catch (IOException e) {
             Log.e("surfaceCreated", e.toString());
         }
     }
-    private void stopCamera() {
-        if (mCamera != null) {
-            if (isPreview) {//正在预览
-                mCamera.setPreviewCallback(null);
-                mCamera.stopPreview();
-                mCamera.release();
-                mCamera = null;
-                isPreview = false;
-            }
-        }
-    }
+
 
     private Camera.Size getSuitablePreviewSize(Camera.Parameters parameters){
         Point point = new Point();

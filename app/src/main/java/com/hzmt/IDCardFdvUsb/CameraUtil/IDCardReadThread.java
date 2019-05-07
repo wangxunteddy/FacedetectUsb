@@ -18,6 +18,7 @@ public class IDCardReadThread extends Thread {
     public static final int IDCARD_CHECK_OK = 2;
     public static final int IDCARD_IMG_OK = 3;
     public static final int IDCARD_ALL_OK = 10;
+
     private final WeakReference<CameraActivity> mActivity;
     private IDCardReadHandler mHandler;
 
@@ -27,7 +28,7 @@ public class IDCardReadThread extends Thread {
     }
 
     @Override
-    public void run() {
+     public void run(){
         //CameraActivityData.Idcard_id = "";
         //CameraActivityData.Idcard_issuedate = "";
         //CameraActivityData.PhotoImageData = null;
@@ -79,42 +80,56 @@ public class IDCardReadThread extends Thread {
                 mHandler.sendMessage(msg);
                 break;
             }
-            int iRet = activity.mIDCardReader.Authenticate_IDCard();
 
-            if(0 == iRet) {
+            if(CameraActivityData.idcardfdv_NoIDCardMode){
                 // 开始计时
                 MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
-
                 Message msg = new Message();
                 msg.what = IDCARD_CHECK_OK;
                 mHandler.sendMessage(msg);
-
-                iRet = activity.mIDCardReader.Read_Content();
-                if(0 == iRet){
-                    String tmpId = activity.mIDCardReader.GetPeopleIDCode();
-                    if(tmpId.equals(CameraActivityData.Idcard_id)){
-                        // 相同身份证
-                        bIDCardNoChange = true;
-                    }
-                    else {
-                        CameraActivityData.Idcard_id = activity.mIDCardReader.GetPeopleIDCode();
-                        CameraActivityData.Idcard_issuedate = activity.mIDCardReader.GetIssueDate();
-                        CameraActivityData.PhotoImageData = activity.mIDCardReader.GetPhotoDate();
-                    }
-
-
-                    String dbgstr;
-                    activity.mDebugLayout.addText("read card: true\n");
-                    dbgstr = "idcardno:"+ CameraActivityData.Idcard_id;
-                    activity.mDebugLayout.addText(dbgstr+"\n");
-
-                    break;
-                }
-                else
-                    activity.mDebugLayout.addText("Read_Content: false,"+iRet+"\n");
+                break;
             }
             else {
-                //activity.mDebugLayout.addText("Authenticate: false," + iRet + "\n");
+                int iRet = activity.mIDCardReader.Authenticate_IDCard();
+
+                if (0 == iRet) {
+                    // 开始计时
+                    MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
+
+                    Message msg = new Message();
+                    msg.what = IDCARD_CHECK_OK;
+                    mHandler.sendMessage(msg);
+
+                    iRet = activity.mIDCardReader.Read_Content();
+                    if (0 == iRet) {
+                        String tmpId = activity.mIDCardReader.GetPeopleIDCode();
+                        if (tmpId.equals(CameraActivityData.Idcard_id) &&
+                                CameraActivityData.PhotoImageData != null) {
+                            // 相同身份证
+                            bIDCardNoChange = true;
+                        } else {
+                            CameraActivityData.Idcard_id = activity.mIDCardReader.GetPeopleIDCode();
+                            CameraActivityData.Idcard_issuedate = activity.mIDCardReader.GetIssueDate();
+                            CameraActivityData.PhotoImageData = activity.mIDCardReader.GetPhotoDate();
+                        }
+
+
+                        String dbgstr;
+                        activity.mDebugLayout.addText("read card: true\n");
+                        dbgstr = "idcardno:" + CameraActivityData.Idcard_id;
+                        activity.mDebugLayout.addText(dbgstr + "\n");
+
+                        break;
+                    } else {
+                        activity.mDebugLayout.addText("Read_Content: false," + iRet + "\n");
+                        CameraActivityData.Idcard_id = "";
+                        CameraActivityData.Idcard_issuedate = "";
+                        CameraActivityData.PhotoImageData = null;
+                        break;
+                    }
+                } else {
+                    //activity.mDebugLayout.addText("Authenticate: false," + iRet + "\n");
+                }
             }
 
             try {
@@ -128,6 +143,18 @@ public class IDCardReadThread extends Thread {
 
         if(CameraActivityData.resume_work)
             return;
+
+        if(CameraActivityData.idcardfdv_NoIDCardMode){
+            // 无证模式直接返回
+            CameraActivityData.Idcard_issuedate = "";
+            CameraActivityData.PhotoImageData = null;
+            CameraActivityData.PhotoImage = null;
+            CameraActivityData.PhotoImageFeat = "None";
+            Message msg = new Message();
+            msg.what = IDCARD_ALL_OK;
+            mHandler.sendMessage(msg);
+            return;
+        }
 
         // 身份证照片处理
         if(!bIDCardNoChange) {
@@ -143,7 +170,9 @@ public class IDCardReadThread extends Thread {
             }
             else {
                 byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
-                CameraActivityData.PhotoImage = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
+                CameraActivityData.PhotoImage = null;
+                if(idcard_photo_Data!=null)
+                    CameraActivityData.PhotoImage = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
             }
             Message msg = new Message();
             msg.what = IDCARD_IMG_OK;
@@ -169,8 +198,11 @@ public class IDCardReadThread extends Thread {
             mHandler.sendMessage(msg);
         }
 
-        if(1 == MyApplication.idcardfdv_requestType &&
-                CameraActivityData.PhotoImageFeat.equals("")){
+        if((0 == MyApplication.idcardfdv_requestType &&
+                CameraActivityData.PhotoImage == null)
+        ||(1 == MyApplication.idcardfdv_requestType &&
+                CameraActivityData.PhotoImageFeat.equals(""))
+            ){
             CameraActivityData.Idcard_id = "";
             CameraActivityData.Idcard_issuedate = "";
             CameraActivityData.PhotoImageData = null;
@@ -181,7 +213,7 @@ public class IDCardReadThread extends Thread {
             msg.what = IDCARD_ERR_READERR;
             mHandler.sendMessage(msg);
         }
-        else {
+        else{
             Message msg = new Message();
             msg.what = IDCARD_ALL_OK;
             mHandler.sendMessage(msg);

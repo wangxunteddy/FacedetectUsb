@@ -65,18 +65,40 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
         byte[] rawImage =baos.toByteArray();
         mBaseBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
 
+
+        // 等待sub获取数据。
+        while(!CameraActivityData.capture_subface_done){
+            try {
+                Thread.sleep(10);
+                if(CameraActivityData.resume_work)
+                    return null;
+            } catch (InterruptedException e){
+                e.printStackTrace();
+            }
+        }
+
         // face detect
         Rect face = new Rect();
-        boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
+        //boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
+        String faceb64 = MyApplication.AiFdrScIns.livecheck(
+                mBaseBm,
+                CameraActivityData.CameraImageSub,
+                face,
+                95,
+                0);
 
-        if(detect){
+        //long nt = System.currentTimeMillis();
+        //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),mBaseBm,nt+"_00");
+        //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),CameraActivityData.CameraImageSub,nt+"_01");
+        if(faceb64 != null && !faceb64.equals("") ){
             //===================
             // test code
             long detectDone = System.currentTimeMillis();
             long detectTime = detectDone - MyApplication.idcardfdvCameraCnt;
             CameraActivity ac = mActivity.get();
-            if(ac != null)
-                ac.mDebugLayout.addText("FDV-detect Time:"+detectTime+"\n");
+            if(ac != null) {
+                ac.mDebugLayout.addText("FDV-detect Time:" + detectTime + "\n");
+            }
             //===================
             publishProgress(CAMERA_FACE_DETECTED);
             Rect cropRect = new Rect(face);
@@ -93,13 +115,16 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
 
             CameraActivityData.CameraImageData = rawImage;
             CameraActivityData.CameraImage = mBaseBm;
+            CameraActivityData.CameraImageB64 = faceb64;
+
             CameraActivityData.CameraImageFeat = "";
-            if(1 == MyApplication.idcardfdv_requestType) {
+            if(CameraActivityData.idcardfdv_NoIDCardMode ||
+                    1 == MyApplication.idcardfdv_requestType) {
                 CameraActivity activity = mActivity.get();
                 // image feat
                 synchronized(CameraActivityData.AiFdrSclock) {
                     long stime = new Date().getTime();
-                    CameraActivityData.CameraImageFeat = MyApplication.AiFdrScIns.get_camera_feat2(face);
+                    CameraActivityData.CameraImageFeat = MyApplication.AiFdrScIns.get_camera_feat(mBaseBm,face);
                     long feattime = new Date().getTime() - stime;
                     if(activity != null)
                         activity.mDebugLayout.addText("CameraFeatTime:"+feattime+"\n");
@@ -120,8 +145,8 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
                 ac.mDebugLayout.addText("FDV-cameraImg Time:"+cameraImgTime+"\n");
             //===================
 
-            if(1 == MyApplication.idcardfdv_requestType &&
-                    CameraActivityData.CameraImageFeat.equals(""))
+            if((1 == MyApplication.idcardfdv_requestType || CameraActivityData.idcardfdv_NoIDCardMode)
+                    && CameraActivityData.CameraImageFeat.equals(""))
                 return null;
             else
                 return face;
@@ -138,8 +163,8 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             CameraActivityData.capture_face_enable = false;
             CameraActivityData.idcardfdv_cameraState = CAMERA_FACE_ALL_OK;
 
-            if(CameraActivityData.idcardfdv_idcardState == IDCardReadThread.IDCARD_ERR_READERR) {
-                // 身份证读卡出错，重启定时复位
+            if(CameraActivityData.idcardfdv_NoIDCardMode) {
+                // 无证模式，重启定时复位
                 if(activity!=null)
                     CameraActivity.startBrightnessWork(activity);
             }

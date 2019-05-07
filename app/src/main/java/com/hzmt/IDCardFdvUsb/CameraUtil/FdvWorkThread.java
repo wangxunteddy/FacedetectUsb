@@ -2,6 +2,7 @@ package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,14 +19,19 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 
 public class FdvWorkThread extends Thread {
+    public static final int FDVWORK_IDCARDERR = 0;
+    public static final int FDVWORK_ON_ALL_DATA_READY = 10;
+
     private final WeakReference<CameraActivity> mActivity;
     private IDCardReadThread mThReadCard;
+    private FdvWorkHandler mHandler;
 
     //构造函数
-    FdvWorkThread(CameraActivity activity){
+    FdvWorkThread(CameraActivity activity, FdvWorkHandler handler){
         super();
 
         this.mActivity = new WeakReference<>(activity);
+        this.mHandler = handler;
     }
 
     @Override
@@ -52,8 +58,16 @@ public class FdvWorkThread extends Thread {
                 mThReadCard.start();
 
                 // 等待比对数据准备完成
-                while((CameraActivityData.idcardfdv_idcardState != IDCardReadThread.IDCARD_ALL_OK) ||
-                        (CameraActivityData.idcardfdv_cameraState != FdvCameraFaceThread.CAMERA_FACE_ALL_OK)){
+                boolean fdvloop = true;
+                while(fdvloop){
+                    if(CameraActivityData.idcardfdv_NoIDCardMode){
+                        fdvloop = !CameraActivityData.idcardfdv_IDCardNoReady ||
+                                (CameraActivityData.idcardfdv_cameraState != FdvCameraFaceThread.CAMERA_FACE_ALL_OK);
+                    }
+                    else{
+                        fdvloop = (CameraActivityData.idcardfdv_idcardState != IDCardReadThread.IDCARD_ALL_OK) ||
+                        (CameraActivityData.idcardfdv_cameraState != FdvCameraFaceThread.CAMERA_FACE_ALL_OK);
+                    }
 
                     if (CameraActivityData.idcardfdv_idcardState == IDCardReadThread.IDCARD_ERR_READERR)
                         break;
@@ -71,10 +85,15 @@ public class FdvWorkThread extends Thread {
                     break;
 
                 if (CameraActivityData.idcardfdv_idcardState == IDCardReadThread.IDCARD_ERR_READERR) {
-                    activity.mDebugLayout.addText("IDCard read error!\n");
-                    delayResumeFdvWork(activity, 1000 * 3);
+                    Message msg = new Message();
+                    msg.what = FDVWORK_IDCARDERR;
+                    mHandler.sendMessage(msg);
                     continue;
                 }
+
+                Message msg = new Message();
+                msg.what = FDVWORK_ON_ALL_DATA_READY;
+                mHandler.sendMessage(msg);
 
                 //===================
                 // test code
@@ -139,10 +158,14 @@ public class FdvWorkThread extends Thread {
 
         String idcard_photo = null;
         String verify_photo = "";
-        if(0 == MyApplication.idcardfdv_requestType) {
+        if(CameraActivityData.idcardfdv_NoIDCardMode){
+            idcard_photo = CameraActivityData.PhotoImageFeat;
+            verify_photo = CameraActivityData.CameraImageFeat;
+        }
+        else if(0 == MyApplication.idcardfdv_requestType) {
             idcard_photo = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
             //long b64time = System.currentTimeMillis();
-            verify_photo = "data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.DEFAULT);
+            verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.DEFAULT);
             //b64time = System.currentTimeMillis() - b64time;
             //activity.mDebugLayout.addText("b64time:"+b64time+"\n");
         }
@@ -213,6 +236,11 @@ public class FdvWorkThread extends Thread {
                     e.printStackTrace();
                 }
 
+                // 清理身份证号码缓存以避免下次直接使用身份证产生问题
+                if(CameraActivityData.idcardfdv_NoIDCardMode){
+                    CameraActivityData.Idcard_id = "";
+                }
+
                 //===================
                 // test code
                 cbctx.mDebugLayout.addText("FDV-package Time:"+MyApplication.idcardfdvStepCnt2+"\n");
@@ -245,6 +273,10 @@ public class FdvWorkThread extends Thread {
                 }
                 else{  } // others
 
+                // 清理身份证号码缓存以避免下次直接使用身份证产生问题
+                if(CameraActivityData.idcardfdv_NoIDCardMode){
+                    CameraActivityData.Idcard_id = "";
+                }
                 Toast.makeText(cbctx, "网络请求错误！", Toast.LENGTH_SHORT).show();
                 CameraActivity.startBrightnessWork(cbctx);
                 delayResumeFdvWork(cbctx,3*1000);
@@ -253,9 +285,19 @@ public class FdvWorkThread extends Thread {
 
         // 加载证书
         InputStream certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
+        int reqType = 0;
+        String reqUrl;
+        if(CameraActivityData.idcardfdv_NoIDCardMode) {
+            reqType = 1; // feat
+            reqUrl = MyApplication.idcardfdvUrl_NoIDCard;
+        }
+        else {
+            reqType = MyApplication.idcardfdv_requestType;
+            reqUrl = MyApplication.idcardfdvUrl;
+        }
         IdcardFdv.request(activity,
-                MyApplication.idcardfdv_requestType,
-                MyApplication.idcardfdvUrl,
+                reqType,
+                reqUrl,
                 CameraActivityData.Idcard_id,
                 CameraActivityData.Idcard_issuedate,
                 idcard_photo,

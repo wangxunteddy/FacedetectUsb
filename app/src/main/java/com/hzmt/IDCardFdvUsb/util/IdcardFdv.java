@@ -200,16 +200,16 @@ public class IdcardFdv {
                 String tempdata;
                 if(0 == requestType) {
                     // image fdv
-                    tempdata = "10022245";
+                    tempdata = "10022546";
                     map.put("appId", tempdata);
                     shaSrc += tempdata;
 
-                    tempdata = "MGRhNjEyYWExOTdhYzYxNTkx";
+                    tempdata = "NGRkZGFhZDAwMDAwOThlZTky";
                     map.put("apiKey", tempdata);
                     shaSrc += tempdata;
 
-                    tempdata = "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw";
-                    //map.put("secretKey", "NzQyNTg0YmZmNDg3OWFjMTU1MDQ2YzIw");
+                    tempdata = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                    //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
                     shaSrc += tempdata;
                 }
                 else{ // else if(1 == requestType) {
@@ -290,7 +290,7 @@ public class IdcardFdv {
                 map.put("checksum", tempdata);
                 object = new JSONObject(map);
                 if( 0 == requestType)
-                    object.put("verify_photos", jsonArray);
+                    object.put("verify_faces", jsonArray);
                 else //  if( 1 == requestType)
                     object.put("verify_face_infos", jsonArray);
             } catch (JSONException e) {

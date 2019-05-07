@@ -35,11 +35,18 @@ public class CameraActivityData {
     public static Bitmap PhotoImage;
     public static String PhotoImageFeat;
     public static byte[] CameraImageData = null;
-    public static Bitmap CameraImage;
+    public static byte[] CameraImageDataSub = null;
+    public static Bitmap CameraImage = null;
+    public static Bitmap CameraImageSub = null;
     public static String CameraImageFeat;
+    public static String CameraImageB64 = null;
 
+    public static boolean idcardfdv_NoIDCardMode = false;
+    public static boolean idcardfdv_IDCardNoReady = false;
     public static boolean detect_face_enable = true;
     public static boolean capture_face_enable = false;
+    public static boolean capture_subface_enable = false;
+    public static boolean capture_subface_done = false;
     public static boolean idcardfdv_working = false;
     public static boolean resume_work = false;
 }
