@@ -149,7 +149,7 @@ public class IDCardReadThread extends Thread {
             CameraActivityData.Idcard_issuedate = "";
             CameraActivityData.PhotoImageData = null;
             CameraActivityData.PhotoImage = null;
-            CameraActivityData.PhotoImageFeat = "None";
+            CameraActivityData.PhotoImageFeat = null;
             Message msg = new Message();
             msg.what = IDCARD_ALL_OK;
             mHandler.sendMessage(msg);

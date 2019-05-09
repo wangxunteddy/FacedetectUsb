@@ -158,12 +158,11 @@ public class FdvWorkThread extends Thread {
 
         String idcard_photo = null;
         String verify_photo = "";
-        if(CameraActivityData.idcardfdv_NoIDCardMode){
-            idcard_photo = CameraActivityData.PhotoImageFeat;
-            verify_photo = CameraActivityData.CameraImageFeat;
-        }
-        else if(0 == MyApplication.idcardfdv_requestType) {
-            idcard_photo = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
+        if(0 == MyApplication.idcardfdv_requestType) {
+            if(CameraActivityData.idcardfdv_NoIDCardMode)
+                idcard_photo = "None";
+            else
+                idcard_photo = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
             //long b64time = System.currentTimeMillis();
             verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.DEFAULT);
             //b64time = System.currentTimeMillis() - b64time;
@@ -285,16 +284,8 @@ public class FdvWorkThread extends Thread {
 
         // 加载证书
         InputStream certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
-        int reqType = 0;
-        String reqUrl;
-        if(CameraActivityData.idcardfdv_NoIDCardMode) {
-            reqType = 1; // feat
-            reqUrl = MyApplication.idcardfdvUrl_NoIDCard;
-        }
-        else {
-            reqType = MyApplication.idcardfdv_requestType;
-            reqUrl = MyApplication.idcardfdvUrl;
-        }
+        int reqType = MyApplication.idcardfdv_requestType;
+        String reqUrl = MyApplication.idcardfdvUrl;
         IdcardFdv.request(activity,
                 reqType,
                 reqUrl,

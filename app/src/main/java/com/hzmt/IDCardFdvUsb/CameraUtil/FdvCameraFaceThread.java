@@ -118,8 +118,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             CameraActivityData.CameraImageB64 = faceb64;
 
             CameraActivityData.CameraImageFeat = "";
-            if(CameraActivityData.idcardfdv_NoIDCardMode ||
-                    1 == MyApplication.idcardfdv_requestType) {
+            if(1 == MyApplication.idcardfdv_requestType) {
                 CameraActivity activity = mActivity.get();
                 // image feat
                 synchronized(CameraActivityData.AiFdrSclock) {
@@ -145,7 +144,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
                 ac.mDebugLayout.addText("FDV-cameraImg Time:"+cameraImgTime+"\n");
             //===================
 
-            if((1 == MyApplication.idcardfdv_requestType || CameraActivityData.idcardfdv_NoIDCardMode)
+            if((1 == MyApplication.idcardfdv_requestType)
                     && CameraActivityData.CameraImageFeat.equals(""))
                 return null;
             else

@@ -45,6 +45,8 @@ import com.hzmt.IDCardFdvUsb.R;
 import com.hzmt.IDCardFdvUsb.SubActivity;
 
 //import com.invs.UsbBase;
+import com.hzmt.IDCardFdvUsb.util.AppUtils;
+import com.hzmt.IDCardFdvUsb.util.AssetExtractor;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
 
@@ -68,6 +70,7 @@ public class CameraActivity extends AppCompatActivity {
 
     public FdvWorkHandler mFdvWorkHandler;
 
+    private AssetExtractor assetExtractor;
     // sound
     public AudioTrack mATRight;
     public AudioTrack mATWrong;
@@ -83,19 +86,24 @@ public class CameraActivity extends AppCompatActivity {
                 WindowManager.LayoutParams. FLAG_FULLSCREEN);
         setContentView(R.layout.activity_camera);
 
+        assetExtractor = new AssetExtractor(this);
+
         // service
-        Intent uploadIntent = new Intent();
-        ComponentName cn = new ComponentName("com.hzmt.idcardfdvupload", "com.hzmt.idcardfdvupload.UploadSrv");
-        uploadIntent.setComponent(cn);
-        uploadIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startService(uploadIntent);
+        if(!AppUtils.isServiceRunning(this,"com.hzmt.idcardfdvupgrade.UploadSrv")) {
+            Intent uploadIntent = new Intent();
+            ComponentName cn = new ComponentName("com.hzmt.idcardfdvupload", "com.hzmt.idcardfdvupload.UploadSrv");
+            uploadIntent.setComponent(cn);
+            uploadIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startService(uploadIntent);
+        }
 
-        Intent upgradeIntent = new Intent();
-        ComponentName cn2 = new ComponentName("com.hzmt.idcardfdvupgrade", "com.hzmt.idcardfdvupgrade.UpgradeSrv");
-        upgradeIntent.setComponent(cn2);
-        upgradeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startService(upgradeIntent);
-
+        if(!AppUtils.isServiceRunning(this,"com.hzmt.idcardfdvupgrade.UpgradeSrv")) {
+            Intent upgradeIntent = new Intent();
+            ComponentName cn2 = new ComponentName("com.hzmt.idcardfdvupgrade", "com.hzmt.idcardfdvupgrade.UpgradeSrv");
+            upgradeIntent.setComponent(cn2);
+            upgradeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startService(upgradeIntent);
+        }
 
         // intent data
         Intent intent=getIntent();
@@ -242,16 +250,33 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void initWork(boolean bStartCamera){
-
         // 初始化AiFdrSc
         MyApplication.AiFdrScIns = new AiFdrScPkg();
         //String path = Environment.getExternalStorageDirectory().getPath();
-        String path = getExternalFilesDir(null).getAbsolutePath();
-        String ver = getVersionStr(path+"version.txt");
-        mDebugLayout.addText(ver+"\n");
-        mDebugLayout.addText(MyApplication.AiFdrScIns.testJNI()+"\n");
+        //String path = getExternalFilesDir(null).getAbsolutePath();
+        String path = getFilesDir().getAbsolutePath();
+        //String ver = getVersionStr(path+"version.txt");
+        //mDebugLayout.addText(ver+"\n");
+        //mDebugLayout.addText(MyApplication.AiFdrScIns.testJNI()+"\n");
         path = path + "/fdrmodel/";
-        //path = "/sdcard/fdrmodel/";
+        {
+            // 检查模型文件
+            File file1 = new File(path + "markscc.dat");
+            if(!file1.exists())
+                assetExtractor.copyAssetFile("markscc.dat", file1.getAbsolutePath());
+
+            File file2 = new File(path + "modelcc.dat");
+            if(!file2.exists())
+                assetExtractor.copyAssetFile("modelcc.dat", file2.getAbsolutePath());
+
+            File file3 = new File(path + "modeld.dat");
+            if(!file3.exists())
+                assetExtractor.copyAssetFile("modeld.dat", file3.getAbsolutePath());
+
+            File file4 = new File(path + "modelsc.dat");
+            if(!file4.exists())
+                assetExtractor.copyAssetFile("modelsc.dat", file4.getAbsolutePath());
+        }
         MyApplication.AiFdrScIns.initAiFdrSc(path);
         mDebugLayout.addText("models loaded!\n");
 
