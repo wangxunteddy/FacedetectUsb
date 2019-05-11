@@ -198,6 +198,7 @@ public class FdvWorkThread extends Thread {
                                 @Override
                                 public void run() {
                                     cbctx.mATRight.stop();
+                                    cbctx.mATRight.reloadStaticData();
                                     cbctx.mATRight.play();
                                     try {
                                         Thread.sleep(1100);
@@ -215,6 +216,7 @@ public class FdvWorkThread extends Thread {
                                 @Override
                                 public void run() {
                                     cbctx.mATWrong.stop();
+                                    cbctx.mATWrong.reloadStaticData();
                                     cbctx.mATWrong.play();
                                     try {
                                         Thread.sleep(1100);
