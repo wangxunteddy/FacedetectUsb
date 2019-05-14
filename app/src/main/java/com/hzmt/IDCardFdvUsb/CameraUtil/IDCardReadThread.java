@@ -81,9 +81,10 @@ public class IDCardReadThread extends Thread {
                 break;
             }
 
+            // 开始计时
+            MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
+
             if(CameraActivityData.idcardfdv_NoIDCardMode){
-                // 开始计时
-                MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
                 Message msg = new Message();
                 msg.what = IDCARD_CHECK_OK;
                 mHandler.sendMessage(msg);
@@ -93,9 +94,6 @@ public class IDCardReadThread extends Thread {
                 int iRet = activity.mIDCardReader.Authenticate_IDCard();
 
                 if (0 == iRet) {
-                    // 开始计时
-                    MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
-
                     Message msg = new Message();
                     msg.what = IDCARD_CHECK_OK;
                     mHandler.sendMessage(msg);
@@ -133,7 +131,8 @@ public class IDCardReadThread extends Thread {
             }
 
             try {
-                Thread.sleep(300);
+                int interval = activity.mIDCardReader.GetAuthInterval();
+                Thread.sleep(interval);
                 if(CameraActivityData.resume_work)
                     return;
             } catch (InterruptedException e){
@@ -169,10 +168,16 @@ public class IDCardReadThread extends Thread {
                 //========================
             }
             else {
-                byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
                 CameraActivityData.PhotoImage = null;
-                if(idcard_photo_Data!=null)
-                    CameraActivityData.PhotoImage = BitmapFactory.decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
+                if(activity.mIDCardReader.GetReaderType() == IDCardReader.READER_MKR){
+                    CameraActivityData.PhotoImage = activity.mIDCardReader.GetPhotoBitmap();
+                }
+                else if(activity.mIDCardReader.GetReaderType() == IDCardReader.READER_INVS) {
+                    byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
+                    if (idcard_photo_Data != null)
+                        CameraActivityData.PhotoImage = BitmapFactory
+                                .decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
+                }
             }
             Message msg = new Message();
             msg.what = IDCARD_IMG_OK;

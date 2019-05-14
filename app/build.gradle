@@ -63,4 +63,5 @@ dependencies {
     implementation files('libs/idcardfdv.jar')
     implementation files('libs/invs_usb.jar')
     implementation files('libs/AiFdrScPkg.jar')
+    implementation files('libs/libIDReaders_V2.2.jar')
 }

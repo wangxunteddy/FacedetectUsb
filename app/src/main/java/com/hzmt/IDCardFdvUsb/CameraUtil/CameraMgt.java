@@ -247,11 +247,13 @@ public class CameraMgt {
             cameraLP.height = CameraActivityData.CameraActivity_height;
             //cameraLP.width = cameraLP.height * previewSize.width / previewSize.height; // 保持宽高比
             cameraLP.width = CameraActivityData.CameraActivity_width; // 拉伸全屏
+            //mSurfaceView.setTranslationX(CameraActivityData.CameraActivity_width * 0.15f); // 公安提醒占0.4, 截图从0.25起
 
             // 设置人脸框绘图窗口大小，与预览窗口等大
             ViewGroup.LayoutParams facerectL = mFaceRect.getLayoutParams();
             facerectL.height = cameraLP.height;
             facerectL.width = cameraLP.width;
+            //mFaceRect.setTranslationX(CameraActivityData.CameraActivity_width * 0.15f);
         }
     }
 
