@@ -146,12 +146,12 @@ public class FdvRestfulService extends Service {
 
                     if(mRequestResult == CameraActivityData.RESULT_PASS) {
                         info_map.put("verification_result", "pass");
-                        info_map.put("err_code", "200");
+                        info_map.put("err_code", "0"); // 200
                         info_map.put("err_msg", "success");
                     }
                     else if(mRequestResult == CameraActivityData.RESULT_NOT_PASS) {
                         info_map.put("verification_result", "failure");
-                        info_map.put("err_code", "200");
+                        info_map.put("err_code", "0"); // 200
                         info_map.put("err_msg", "success");
                     }
                     else {
