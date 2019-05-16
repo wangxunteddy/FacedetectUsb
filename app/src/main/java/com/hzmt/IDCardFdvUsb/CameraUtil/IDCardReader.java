@@ -202,6 +202,57 @@ public class IDCardReader extends UsbSam{
         return -1;
     }
 
+    public String GetPeopleName() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getName();
+            else
+                return "";
+        }
+        else if(mReaderType == READER_INVS)
+            return this.mCard.getName();
+
+        return "";
+    }
+
+    public String GetPeopleBirthdate() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getBirthday();
+            else
+                return "";
+        }
+        else if(mReaderType == READER_INVS)
+            return this.mCard.getBirth();
+
+        return "";
+    }
+
+    public String GetPeopleSex() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getSex();
+            else
+                return "";
+        }
+        else if(mReaderType == READER_INVS)
+            return this.mCard.getSex1();
+
+        return "";
+    }
+
+    public String GetPeopleNation() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getNation();
+            else
+                return "";
+        }else if(mReaderType == READER_INVS)
+            return this.mCard.getNation1();
+
+        return "";
+    }
+
     public String GetPeopleIDCode() {
         if(mReaderType == READER_MKR){
             if(mkr_idCardInfo != null)
@@ -226,6 +277,31 @@ public class IDCardReader extends UsbSam{
 
         return "";
     }
+
+    public String GetExpireDate() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getValidEndDate();
+            else
+                return "";
+        }else if(mReaderType == READER_INVS)
+            return this.mCard.getEnd();
+
+        return "";
+    }
+
+    public String GetAddress() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getAddress();
+            else
+                return "";
+        }else if(mReaderType == READER_INVS)
+            return this.mCard.getAddress();
+
+        return "";
+    }
+
 
     public byte[] GetPhotoDate() {
         if(mReaderType == READER_MKR){
@@ -254,6 +330,19 @@ public class IDCardReader extends UsbSam{
         }
 
         return null;
+    }
+
+    public String GetIssuingAuthority() {
+        if(mReaderType == READER_MKR){
+            if(mkr_idCardInfo != null)
+                return mkr_idCardInfo.getRegistInstitution();
+            else
+                return "";
+        }
+        else if(mReaderType == READER_INVS)
+            return this.mCard.getPolice();
+
+        return "";
     }
 
     public void CloseIDCardReader(){

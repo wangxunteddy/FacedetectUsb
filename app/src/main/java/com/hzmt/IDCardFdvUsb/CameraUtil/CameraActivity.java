@@ -2,8 +2,12 @@ package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
@@ -12,6 +16,7 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -50,7 +55,7 @@ import com.hzmt.IDCardFdvUsb.util.AssetExtractor;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
 
-public class CameraActivity extends AppCompatActivity {
+public class CameraActivity extends AppCompatActivity{
     private static final int PERMISSION_FINE_LOCATION = 0;
     private static final int PERMISSION_COARSE_LOCATION = 1;
     private static final int PERMISSION_CAMERA = 2;
@@ -63,8 +68,8 @@ public class CameraActivity extends AppCompatActivity {
     public  InfoLayout mInfoLayout;
     private ImageView mHelpImg;
     public  LinearLayout mAttLayout;
-
     public DebugLayout mDebugLayout;
+
     public IDCardReader mIDCardReader;
     public IDCardReadHandler mIDCardReadHandler;
 
@@ -74,6 +79,10 @@ public class CameraActivity extends AppCompatActivity {
     // sound
     public AudioTrack mATRight;
     public AudioTrack mATWrong;
+
+    // service
+    public FdvRestfulService mFdvSrv;
+    private RestfulRequestReceiver mFdvSrvReceiver;
 
 
     @Override
@@ -105,6 +114,14 @@ public class CameraActivity extends AppCompatActivity {
             startService(upgradeIntent);
         }
 
+        // restful service
+        bindService(new Intent(this,FdvRestfulService.class),mSrvConn, Service.BIND_AUTO_CREATE);
+        // 动态注册用于通信的接收器
+        mFdvSrvReceiver = new RestfulRequestReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("com.hzmt.IDCardFdvUsb.FDV_REQUEST");
+        registerReceiver(mFdvSrvReceiver, filter);
+
         // intent data
         Intent intent=getIntent();
         if(intent!=null) {
@@ -128,13 +145,6 @@ public class CameraActivity extends AppCompatActivity {
         getWindowManager().getDefaultDisplay().getRealSize(point); // 全屏分辨率
         CameraActivityData.CameraActivity_width = point.x;
         CameraActivityData.CameraActivity_height = point.y;
-
-        //mImgView = (ImageView) findViewById(R.id.imageView);
-        //Bitmap infobg = Bitmap.createBitmap(2, 2,
-        //        Bitmap.Config.ARGB_8888);
-        //infobg.eraseColor(Color.parseColor("#FFFFFF"));//填充颜色
-        //mImgView.setImageBitmap(infobg);
-        //mImgView.setVisibility(View.INVISIBLE);
 
         mPreviewSV = (SurfaceView) findViewById(R.id.camera_preview);
 //        mPreviewSV.setTranslationX(CameraActivityData.CameraActivity_width * 0.4f);
@@ -220,6 +230,22 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
+    private ServiceConnection mSrvConn = new ServiceConnection(){
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service)
+        {
+            // 获取服务上的IBinder对象，调用IBinder对象中定义的自定义方法，获取Service对象
+            FdvRestfulService.LocalBinder binder=(FdvRestfulService.LocalBinder)service;
+            mFdvSrv = binder.getService();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name)
+        {
+            mFdvSrv = null;
+        }
+    };
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
     {
@@ -284,11 +310,10 @@ public class CameraActivity extends AppCompatActivity {
         mIDCardReader = new IDCardReader();
         mIDCardReader.OpenIDCardReader(this);
         mIDCardReadHandler = new IDCardReadHandler(this);
+        CameraActivityData.FdvIDCardInfos = new IDCardInfos();
 
         // handler for fdv work
         mFdvWorkHandler = new FdvWorkHandler(this);
-
-        // get regist info
         IdcardFdvRegister.checkRegister(this);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -440,6 +465,11 @@ public class CameraActivity extends AppCompatActivity {
         mIDCardReader.CloseIDCardReader();
         mATRight.release();
         mATWrong.release();
+
+        unregisterReceiver(mFdvSrvReceiver);
+        mFdvSrvReceiver = null;
+        unbindService(mSrvConn);
+        mFdvSrv = null;
         super.onDestroy();
     }
 
@@ -506,7 +536,7 @@ public class CameraActivity extends AppCompatActivity {
                     params.screenBrightness = 0.005f;
                     activity.getWindow().setAttributes(params);
 
-                    CameraActivityData.resume_work = true;
+                    CameraActivityData.resume_work = true;  // 仅在此为true,退回至无人状态
                     //infoL.resetCameraImage();
                     //infoL.resetIdcardPhoto();
                     //infoL.setResultSimilarity("--%");
@@ -547,6 +577,15 @@ public class CameraActivity extends AppCompatActivity {
         CameraActivityData.CameraImage = null;
         CameraActivityData.CameraImageFeat = "";
         CameraActivityData.idcardfdv_NoIDCardMode = false;
+        if(CameraActivityData.idcardfdv_RequestMode && mFdvSrv != null) {
+            if(CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_NOT_PASS &&
+                    CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_PASS )
+            {
+                mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+            }
+        }
+        CameraActivityData.idcardfdv_RequestMode = false;
+        CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_NONE;
     }
 
     /**
@@ -597,27 +636,29 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
-    public static String getVersionStr(String path)
-    {
-        String retstr = "";
-        File vfile=new File(path);
-        if(vfile.exists()) {
-            try {
-                InputStream instream = new FileInputStream(vfile);
-                InputStreamReader inputreader = new InputStreamReader(instream);
-                BufferedReader buffreader = new BufferedReader(inputreader);
-                retstr = buffreader.readLine();
-                instream.close();
-            }
-            catch (java.io.FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
+    // restful接收外部识别请求
+    public class RestfulRequestReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            IDCardInfos info = (IDCardInfos) intent.getSerializableExtra("person_data");
+            action_fdv(info);
+        }
+    }
+
+    public void action_fdv(IDCardInfos info){
+        if(mHelpImg.getVisibility() == View.INVISIBLE){
+            // 不在帮助画面时不执行
+            if(mFdvSrv != null)
+                mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+            return;
         }
 
-        return retstr;
+        try {
+            CameraActivityData.FdvIDCardInfos = (IDCardInfos) info.clone();
+        }catch (CloneNotSupportedException e){
+            e.printStackTrace();
+        }
+        CameraActivityData.idcardfdv_RequestMode = true;
     }
 }
 

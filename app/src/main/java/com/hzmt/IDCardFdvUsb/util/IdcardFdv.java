@@ -77,10 +77,11 @@ public class IdcardFdv {
         //if(IdcardFdvRegister.checkRegister(context)){
         if(regno != null && !regno.equals("")){
             String sn = IdcardFdvRegister.getProductSn();
+            String secretkey = IdcardFdvRegister.getSecretKey();
             HttpsThread th = new HttpsThread(urlstring,
                     requestType,
                     idcard_id, idcard_issuedate,
-                    sn, regno,
+                    sn, regno,secretkey,
                     idcard_photo,verify_photo,
                     certstream, cb);
 
@@ -125,11 +126,11 @@ public class IdcardFdv {
             final RequestCallBack cb_p = cb;
             IdcardFdvRegister.RegisterCallBack regcallback = new IdcardFdvRegister.RegisterCallBack(){
                 @Override
-                public void onSuccess(String sn, String regno){
+                public void onSuccess(String sn, String regno, String secretkey){
                     HttpsThread th = new HttpsThread(urlstring_p,
                             requestType_p,
                             idcard_id_p, idcard_issuedate_p,
-                            sn,regno,
+                            sn,regno,secretkey,
                             idcard_photo_p,verify_photo_p,
                             certstream_p, cb_p);
 
@@ -163,6 +164,7 @@ public class IdcardFdv {
         private String idcard_issuedate;
         private String productsn;
         private String registerno;
+        private String secretkey;
         private String idcard_photo;
         private String verify_photo;
         private InputStream certstream;
@@ -174,6 +176,7 @@ public class IdcardFdv {
                            String idcard_issuedate,
                            String productsn,
                            String registerno,
+                           String secretkey,
                            String idcard_photo,
                            String verify_photo,
                            InputStream certstream,
@@ -184,6 +187,7 @@ public class IdcardFdv {
             this.idcard_issuedate = idcard_issuedate;
             this.productsn = productsn;
             this.registerno = registerno;
+            this.secretkey = secretkey;
             this.idcard_photo = idcard_photo;
             this.verify_photo = verify_photo;
             this.certstream = certstream;
@@ -208,7 +212,7 @@ public class IdcardFdv {
                     map.put("apiKey", tempdata);
                     shaSrc += tempdata;
 
-                    tempdata = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                    tempdata = this.secretkey;//"ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
                     //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
                     shaSrc += tempdata;
                 }
@@ -222,7 +226,7 @@ public class IdcardFdv {
                     map.put("apiKey", tempdata);
                     shaSrc += tempdata;
 
-                    tempdata = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                    tempdata = this.secretkey;//"ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
                     //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
                     shaSrc += tempdata;
                 }

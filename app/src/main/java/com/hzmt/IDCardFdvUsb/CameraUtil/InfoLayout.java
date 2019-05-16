@@ -110,7 +110,7 @@ public class InfoLayout {
                     Pattern pa = Pattern.compile("^[1-9]\\d{7}((0\\d)|(1[0-2]))(([0|1|2]\\d)|3[0-1])\\d{3}$|^[1-9]\\d{5}[1-9]\\d{3}((0\\d)|(1[0-2]))(([0|1|2]\\d)|3[0-1])\\d{3}([0-9]|X)$");
                     Matcher ma = pa.matcher(strIDCardNo);
                     if(ma.matches()) {
-                        CameraActivityData.Idcard_id = strIDCardNo;
+                        CameraActivityData.FdvIDCardInfos.idcard_id = strIDCardNo;
                         // 禁止编辑
                         mIDCardNoInput.setFocusable(false);
                         mIDCardNoInput.setFocusableInTouchMode(false);
@@ -119,7 +119,7 @@ public class InfoLayout {
                         CameraActivityData.idcardfdv_IDCardNoReady = true;
                     }
                     else{
-                        CameraActivityData.Idcard_id = "";
+                        CameraActivityData.FdvIDCardInfos.idcard_id = "";
                         CameraActivityData.idcardfdv_IDCardNoReady = false;
                         String errMsg = "输入的身份证号码无效！";
                         Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();

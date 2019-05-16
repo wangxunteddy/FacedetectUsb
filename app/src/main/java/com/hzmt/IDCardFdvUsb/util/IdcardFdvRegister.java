@@ -30,6 +30,8 @@ import android.widget.Toast;
 import android.text.Spannable;
 import android.text.Selection;
 
+import com.hzmt.IDCardFdvUsb.MyApplication;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -42,8 +44,9 @@ public class IdcardFdvRegister {
 
     private static String ProductSn = null;
     private static String RegisteredNo = null;
+    private static String SecretKey = null;
 
-    private static final String REG_FILE = "IdcardFdvReg.txt";
+    private static final String REG_FILE = "IDCardFdvReg.txt";
 
     public static String getProductSn(){
         return ProductSn;
@@ -53,12 +56,16 @@ public class IdcardFdvRegister {
         return RegisteredNo;
     }
 
+    public static String getSecretKey(){
+        return SecretKey;
+    }
+
     private static void onFinishRegister(){
         nowRegistering = false;
     }
 
     public interface RegisterCallBack{
-        void onSuccess(String sn, String regno);
+        void onSuccess(String sn, String regno, String secretkey);
         void onFailure(int errno);
     }
 
@@ -179,19 +186,28 @@ public class IdcardFdvRegister {
             BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
             ProductSn = null;
             RegisteredNo = null;
+            SecretKey = null;
             String lineTxt = null;
             while ((lineTxt = br.readLine()) != null) {
                 String[] names = lineTxt.split(":");
                 if(names.length >=2 ){
                     if(names[0].equals("ProductSn"))
-                        ProductSn = names[1];
+                        ProductSn = AESUtils.decrypt(names[1],MyApplication.config_password);
                     if(names[0].equals("RegisteredNo"))
-                        RegisteredNo = names[1];
+                        RegisteredNo = AESUtils.decrypt(names[1],MyApplication.config_password);
+                    if(names[0].equals("SecretKey"))
+                        SecretKey = AESUtils.decrypt(names[1],MyApplication.config_password);
                 }
             }
             br.close();
 
+            if(null == ProductSn || ProductSn.equals("")){
+                return false;
+            }
             if(null == RegisteredNo || RegisteredNo.equals("")){
+                return false;
+            }
+            if(null == SecretKey || SecretKey.equals("")){
                 return false;
             }
         } catch (FileNotFoundException e) {
@@ -206,17 +222,23 @@ public class IdcardFdvRegister {
     }
 
     public static void clearRegisterInfo(Context context){
-        saveRegisterInfo(context, "", "");
+        saveRegisterInfo(context, "", "","");
     }
 
-    private static void saveRegisterInfo(Context context, String prosn, String regno){
+    private static void saveRegisterInfo(Context context, String prosn, String regno, String secretkey){
+        String crypt_prosn = AESUtils.encrypt(prosn, MyApplication.config_password);
+        String crypt_regno = AESUtils.encrypt(regno, MyApplication.config_password);
+        String crypt_secretkey = AESUtils.encrypt(secretkey, MyApplication.config_password);
+
         try{
             FileOutputStream outputStream = context.openFileOutput(REG_FILE,
                     Activity.MODE_PRIVATE);
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
-            bw.write("ProductSn:"+prosn);
+            bw.write("ProductSn:"+crypt_prosn);
             bw.newLine();
-            bw.write("RegisteredNo:"+regno);
+            bw.write("RegisteredNo:"+crypt_regno);
+            bw.newLine();
+            bw.write("SecretKey:"+crypt_secretkey);
             bw.newLine();
             bw.close();
         } catch (FileNotFoundException e) {
@@ -356,6 +378,10 @@ public class IdcardFdvRegister {
                     else{
                         msg = "注册成功！";
                         RegisteredNo = resultJSON.getString("RegisteredNo");
+                        if(resultJSON.has("SecretKey"))
+                            SecretKey = resultJSON.getString("SecretKey");
+                        else
+                            SecretKey = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -391,9 +417,9 @@ public class IdcardFdvRegister {
                             }
                             else{
                                 // save register info and continue
-                                saveRegisterInfo(regcontext, ProductSn, RegisteredNo);
+                                saveRegisterInfo(regcontext, ProductSn, RegisteredNo,SecretKey);
                                 if(null != regcallback){
-                                    regcallback.onSuccess(ProductSn, RegisteredNo);
+                                    regcallback.onSuccess(ProductSn, RegisteredNo,SecretKey);
                                 }
 
                                 onFinishRegister(); // clear

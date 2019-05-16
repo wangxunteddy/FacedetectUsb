@@ -7,6 +7,7 @@ import android.os.Message;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
 import com.hzmt.IDCardFdvUsb.R;
+import com.hzmt.IDCardFdvUsb.util.B64Util;
 
 import java.lang.ref.WeakReference;
 
@@ -74,17 +75,14 @@ public class IDCardReadThread extends Thread {
 
         boolean bIDCardNoChange = false;
         while(true){
-            if(MyApplication.DebugNoIDCardReader) {
-                Message msg = new Message();
-                msg.what = IDCARD_CHECK_OK;
-                mHandler.sendMessage(msg);
-                break;
-            }
-
             // 开始计时
             MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
+            boolean no_read_flag = (MyApplication.DebugNoIDCardReader ||
+                                    CameraActivityData.idcardfdv_NoIDCardMode ||
+                                    CameraActivityData.idcardfdv_RequestMode
+                                    );
 
-            if(CameraActivityData.idcardfdv_NoIDCardMode){
+            if(no_read_flag){
                 Message msg = new Message();
                 msg.what = IDCARD_CHECK_OK;
                 mHandler.sendMessage(msg);
@@ -101,27 +99,44 @@ public class IDCardReadThread extends Thread {
                     iRet = activity.mIDCardReader.Read_Content();
                     if (0 == iRet) {
                         String tmpId = activity.mIDCardReader.GetPeopleIDCode();
-                        if (tmpId.equals(CameraActivityData.Idcard_id) &&
-                                CameraActivityData.PhotoImageData != null) {
+                        if (tmpId.equals(CameraActivityData.FdvIDCardInfos.idcard_id) &&
+                                CameraActivityData.PhotoImage != null) {
                             // 相同身份证
                             bIDCardNoChange = true;
                         } else {
-                            CameraActivityData.Idcard_id = activity.mIDCardReader.GetPeopleIDCode();
-                            CameraActivityData.Idcard_issuedate = activity.mIDCardReader.GetIssueDate();
                             CameraActivityData.PhotoImageData = activity.mIDCardReader.GetPhotoDate();
+
+                            // IDCard infos
+                            CameraActivityData.FdvIDCardInfos.name
+                                    = activity.mIDCardReader.GetPeopleName();
+                            CameraActivityData.FdvIDCardInfos.issuing_authority
+                                    = activity.mIDCardReader.GetIssuingAuthority();
+                            CameraActivityData.FdvIDCardInfos.birthdate
+                                    = activity.mIDCardReader.GetPeopleBirthdate();
+                            CameraActivityData.FdvIDCardInfos.sex
+                                    = activity.mIDCardReader.GetPeopleSex();
+                            CameraActivityData.FdvIDCardInfos.idcard_issuedate
+                                    = activity.mIDCardReader.GetIssueDate();
+                            CameraActivityData.FdvIDCardInfos.idcard_expiredate
+                                    = activity.mIDCardReader.GetExpireDate();
+                            CameraActivityData.FdvIDCardInfos.idcard_id
+                                    = activity.mIDCardReader.GetPeopleIDCode();
+                            CameraActivityData.FdvIDCardInfos.ethnicgroup
+                                    = activity.mIDCardReader.GetPeopleNation();
+                            CameraActivityData.FdvIDCardInfos.address
+                                    = activity.mIDCardReader.GetAddress();
                         }
 
 
                         String dbgstr;
                         activity.mDebugLayout.addText("read card: true\n");
-                        dbgstr = "idcardno:" + CameraActivityData.Idcard_id;
+                        dbgstr = "idcardno:" + CameraActivityData.FdvIDCardInfos.idcard_id;
                         activity.mDebugLayout.addText(dbgstr + "\n");
 
                         break;
                     } else {
                         activity.mDebugLayout.addText("Read_Content: false," + iRet + "\n");
-                        CameraActivityData.Idcard_id = "";
-                        CameraActivityData.Idcard_issuedate = "";
+                        CameraActivityData.FdvIDCardInfos.clean();
                         CameraActivityData.PhotoImageData = null;
                         break;
                     }
@@ -145,7 +160,7 @@ public class IDCardReadThread extends Thread {
 
         if(CameraActivityData.idcardfdv_NoIDCardMode){
             // 无证模式直接返回
-            CameraActivityData.Idcard_issuedate = "";
+            CameraActivityData.FdvIDCardInfos.clean();
             CameraActivityData.PhotoImageData = null;
             CameraActivityData.PhotoImage = null;
             CameraActivityData.PhotoImageFeat = null;
@@ -159,8 +174,8 @@ public class IDCardReadThread extends Thread {
         if(!bIDCardNoChange) {
             if(MyApplication.DebugNoIDCardReader){
                 //======================== test
-                CameraActivityData.Idcard_id = "332526198407210014";
-                CameraActivityData.Idcard_issuedate = "20131212";
+                CameraActivityData.FdvIDCardInfos.idcard_id = "332526198407210014";
+                CameraActivityData.FdvIDCardInfos.idcard_issuedate = "20131212";
                 BitmapFactory.Options opts = new BitmapFactory.Options();
                 opts.inScaled = false;
                 Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.zp,opts);
@@ -169,7 +184,12 @@ public class IDCardReadThread extends Thread {
             }
             else {
                 CameraActivityData.PhotoImage = null;
-                if(activity.mIDCardReader.GetReaderType() == IDCardReader.READER_MKR){
+                if(CameraActivityData.idcardfdv_RequestMode){
+                    String b64str = CameraActivityData.FdvIDCardInfos.idcard_photo;
+                    b64str = b64str.substring(b64str.indexOf("base64,") + 7);
+                    CameraActivityData.PhotoImage = B64Util.base64ToBitmap(b64str);
+                }
+                else if(activity.mIDCardReader.GetReaderType() == IDCardReader.READER_MKR){
                     CameraActivityData.PhotoImage = activity.mIDCardReader.GetPhotoBitmap();
                 }
                 else if(activity.mIDCardReader.GetReaderType() == IDCardReader.READER_INVS) {
@@ -208,11 +228,10 @@ public class IDCardReadThread extends Thread {
         ||(1 == MyApplication.idcardfdv_requestType &&
                 CameraActivityData.PhotoImageFeat.equals(""))
             ){
-            CameraActivityData.Idcard_id = "";
-            CameraActivityData.Idcard_issuedate = "";
             CameraActivityData.PhotoImageData = null;
             CameraActivityData.PhotoImage = null;
             //MyApplication.PhotoImageFeat = "";
+            CameraActivityData.FdvIDCardInfos.clean();
 
             Message msg = new Message();
             msg.what = IDCARD_ERR_READERR;

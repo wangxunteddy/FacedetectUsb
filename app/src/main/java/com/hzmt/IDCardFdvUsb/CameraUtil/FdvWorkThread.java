@@ -136,6 +136,7 @@ public class FdvWorkThread extends Thread {
     // ===========================================================
 
     public static void delayResumeFdvWork(final CameraActivity activity, long delayMillis){
+        // 仅返回验证开始阶段(等待读卡),没有退出本线程。
         Handler handler = new Handler();
         Runnable work = new Runnable() {
             @Override
@@ -161,8 +162,13 @@ public class FdvWorkThread extends Thread {
         if(0 == MyApplication.idcardfdv_requestType) {
             if(CameraActivityData.idcardfdv_NoIDCardMode)
                 idcard_photo = "None";
-            else
-                idcard_photo = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
+            else if(CameraActivityData.idcardfdv_RequestMode){
+                idcard_photo = CameraActivityData.FdvIDCardInfos.idcard_photo;
+            }
+            else {
+                idcard_photo = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage, Bitmap.CompressFormat.PNG);
+                CameraActivityData.FdvIDCardInfos.idcard_photo = idcard_photo;
+            }
             //long b64time = System.currentTimeMillis();
             verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.DEFAULT);
             //b64time = System.currentTimeMillis() - b64time;
@@ -171,6 +177,9 @@ public class FdvWorkThread extends Thread {
         else if(1 == MyApplication.idcardfdv_requestType) {
             idcard_photo = CameraActivityData.PhotoImageFeat;
             verify_photo = CameraActivityData.CameraImageFeat;
+
+            CameraActivityData.FdvIDCardInfos.idcard_photo = "data:image/png;base64," +
+                    B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
         }
 
         final CameraActivity cbctx = activity;
@@ -192,6 +201,7 @@ public class FdvWorkThread extends Thread {
 
                         if(sim > CameraActivityData.SimThreshold) {
                             cbctx.mInfoLayout.setResultIconPass();
+                            CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_PASS;
 
                             // 播放提示音
                             new Thread(){
@@ -208,9 +218,20 @@ public class FdvWorkThread extends Thread {
                                     }
                                 }
                             }.start();
+
+                            if(cbctx.mFdvSrv != null){
+                                // 设置最后识别信息
+                                cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
+                                cbctx.mFdvSrv.setResult(true);
+
+                                // 请求模式设置结果
+                                if(CameraActivityData.idcardfdv_RequestMode)
+                                    cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_PASS);
+                            }
                         }
                         else{
                             cbctx.mInfoLayout.setResultIconNotPass();
+                            CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_NOT_PASS;
                             // 播放提示音
                             new Thread(){
                                 @Override
@@ -226,20 +247,40 @@ public class FdvWorkThread extends Thread {
                                     }
                                 }
                             }.start();
+
+                            if(cbctx.mFdvSrv != null){
+                                // 设置最后识别信息
+                                cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
+                                cbctx.mFdvSrv.setResult(false);
+
+                                // 请求模式设置结果
+                                if(CameraActivityData.idcardfdv_RequestMode)
+                                    cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_NOT_PASS);
+                            }
                         }
                         saveUpload = true;
                     }
                     else{
+                        CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
+                        if(CameraActivityData.idcardfdv_RequestMode && cbctx.mFdvSrv != null)
+                            cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+
                         String err_msg = object.getString("Err_msg");
                         Toast.makeText(cbctx, err_msg, Toast.LENGTH_SHORT).show();
                     }
                 } catch (JSONException e) {
+                    CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
+                    if(CameraActivityData.idcardfdv_RequestMode && cbctx.mFdvSrv != null)
+                        cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
                     e.printStackTrace();
                 }
 
                 // 清理身份证号码缓存以避免下次直接使用身份证产生问题
-                if(CameraActivityData.idcardfdv_NoIDCardMode){
-                    CameraActivityData.Idcard_id = "";
+                boolean clean_flag = (CameraActivityData.idcardfdv_NoIDCardMode ||
+                                      CameraActivityData.idcardfdv_RequestMode
+                                     );
+                if(clean_flag){
+                    CameraActivityData.FdvIDCardInfos.idcard_id = "";
                 }
 
                 //===================
@@ -254,7 +295,7 @@ public class FdvWorkThread extends Thread {
                 if(saveUpload){
                     int simInt = (int)(sim * 1000);
                     String prename = String.format("%s_%s_%03d",
-                            CameraActivityData.Idcard_id,
+                            CameraActivityData.FdvIDCardInfos.idcard_id,
                             serial_no,
                             simInt);
                     if(!MyApplication.DebugNoIDCardReader) {
@@ -267,7 +308,7 @@ public class FdvWorkThread extends Thread {
             @Override
             public void onFailure(int errno) {
                 cbctx.mDebugLayout.addText("network failed!\n");
-
+                CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
 
                 if( 3 == errno){
                     // fdv failed
@@ -275,9 +316,13 @@ public class FdvWorkThread extends Thread {
                 else{  } // others
 
                 // 清理身份证号码缓存以避免下次直接使用身份证产生问题
-                if(CameraActivityData.idcardfdv_NoIDCardMode){
-                    CameraActivityData.Idcard_id = "";
+                boolean clean_flag = (CameraActivityData.idcardfdv_NoIDCardMode ||
+                        CameraActivityData.idcardfdv_RequestMode
+                );
+                if(clean_flag){
+                    CameraActivityData.FdvIDCardInfos.idcard_id = "";
                 }
+
                 Toast.makeText(cbctx, "网络请求错误！", Toast.LENGTH_SHORT).show();
                 CameraActivity.startBrightnessWork(cbctx);
                 delayResumeFdvWork(cbctx,3*1000);
@@ -291,8 +336,8 @@ public class FdvWorkThread extends Thread {
         IdcardFdv.request(activity,
                 reqType,
                 reqUrl,
-                CameraActivityData.Idcard_id,
-                CameraActivityData.Idcard_issuedate,
+                CameraActivityData.FdvIDCardInfos.idcard_id,
+                CameraActivityData.FdvIDCardInfos.idcard_issuedate,
                 idcard_photo,
                 verify_photo,
                 certstream,

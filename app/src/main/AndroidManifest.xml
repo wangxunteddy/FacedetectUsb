@@ -24,6 +24,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+
+        <service android:name=".CameraUtil.FdvRestfulService">
+        </service>
+
         <activity
             android:name="com.hzmt.IDCardFdvUsb.MainActivity"
             android:screenOrientation = "landscape">

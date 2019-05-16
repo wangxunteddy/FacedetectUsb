@@ -27,10 +27,15 @@ public class CameraActivityData {
 
     //public static final byte[] fdvlock = new byte[0];  // 特别的instance变量，充当同步锁
     public static final byte[] AiFdrSclock = new byte[0];  // 特别的instance变量，充当同步锁
+
+    public static final int RESULT_NONE = -2;
+    public static final int RESULT_FAILED = -1;
+    public static final int RESULT_NOT_PASS = 0;
+    public static final int RESULT_PASS = 1;
+    public static int idcardfdv_result = RESULT_NONE;   // 识别结果标记
+
     public static int idcardfdv_idcardState = 0;
     public static int idcardfdv_cameraState = 0;
-    public static String Idcard_id = null;
-    public static String Idcard_issuedate = null;
     public static byte[] PhotoImageData = null;
     public static Bitmap PhotoImage;
     public static String PhotoImageFeat;
@@ -40,7 +45,9 @@ public class CameraActivityData {
     public static Bitmap CameraImageSub = null;
     public static String CameraImageFeat;
     public static String CameraImageB64 = null;
+    public static IDCardInfos FdvIDCardInfos;
 
+    public static boolean idcardfdv_RequestMode = false;
     public static boolean idcardfdv_NoIDCardMode = false;
     public static boolean idcardfdv_IDCardNoReady = false;
     public static boolean detect_face_enable = true;
