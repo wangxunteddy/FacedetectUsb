@@ -42,6 +42,7 @@ public class MyApplication extends Application {
     // debug and test
     public static byte[] TestImageData = null;
     public static int idcardfdv_requestType = 0;    // image fdv
+    public static boolean idcardfdv_subCameraEnable = true;
     public static boolean DebugNoIDCardReader = false;
 
     @Override

@@ -45,6 +45,8 @@ public class CameraActivityData {
     public static Bitmap CameraImageSub = null;
     public static String CameraImageFeat;
     public static String CameraImageB64 = null;
+    public static Bitmap UploadCameraImage = null;
+    public static Bitmap UploadCameraImageSub = null;
     public static IDCardInfos FdvIDCardInfos;
 
     public static boolean idcardfdv_RequestMode = false;

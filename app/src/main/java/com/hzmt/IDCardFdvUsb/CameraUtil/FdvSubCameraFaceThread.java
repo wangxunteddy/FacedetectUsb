@@ -42,18 +42,25 @@ public class FdvSubCameraFaceThread extends Thread{
                 null);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         yuvimage.compressToJpeg(
-                new Rect(previewSize.width / 4, // 裁去两边
+                new Rect(previewSize.width / 4,
                         0,
                         previewSize.width * 3 / 4,
                         previewSize.height),
                 100,
                 baos);
         byte[] rawImage =baos.toByteArray();
-        Bitmap bm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
+        Bitmap fullBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
+        Bitmap bm = fullBm;
+        //Bitmap bm = Bitmap.createBitmap(fullBm,
+        //        previewSize.width / 4, 0,
+        //        previewSize.width / 2, previewSize.height,
+        //        null, false);
 
         CameraActivityData.CameraImageDataSub = rawImage;
         CameraActivityData.CameraImageSub = bm;
         CameraActivityData.capture_subface_done = true;
+
+        CameraActivityData.UploadCameraImageSub = fullBm;
         return;
     }
 }

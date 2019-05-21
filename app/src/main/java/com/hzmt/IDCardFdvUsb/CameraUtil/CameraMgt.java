@@ -22,6 +22,7 @@ import android.util.Log;
 import android.view.ViewGroup;
 
 import com.hzmt.IDCardFdvUsb.MainActivity;
+import com.hzmt.IDCardFdvUsb.MyApplication;
 
 import java.io.IOException;
 import java.util.List;
@@ -164,37 +165,41 @@ public class CameraMgt {
             //}
 
             mCamera.setParameters(parameters);
-            setSuitableSureface(); // 设置绘图窗口尺寸
+            setSuitableSurface(); // 设置绘图窗口尺寸
             mCamera.setPreviewCallback(mCameraFrameWork);
 
             // sub camera
-            mCameraSub = Camera.open(mCamIdxSub);
-            //设置角度
-            setCameraDisplayOrientation(mActivity, mCamIdxSub, mCameraSub);
-            // 设置参数
-            Camera.Parameters parametersSub = mCameraSub.getParameters();
-            List<Integer> previewFormatsSub = parametersSub.getSupportedPreviewFormats();
-            if (previewFormatsSub.contains(ImageFormat.NV21)) {
-                parametersSub.setPreviewFormat(ImageFormat.NV21);
+            mCameraSub = null;
+            if(MyApplication.idcardfdv_subCameraEnable){
+                mCameraSub = Camera.open(mCamIdxSub);
+                //设置角度
+                setCameraDisplayOrientation(mActivity, mCamIdxSub, mCameraSub);
+                // 设置参数
+                Camera.Parameters parametersSub = mCameraSub.getParameters();
+                List<Integer> previewFormatsSub = parametersSub.getSupportedPreviewFormats();
+                if (previewFormatsSub.contains(ImageFormat.NV21)) {
+                    parametersSub.setPreviewFormat(ImageFormat.NV21);
+                }
+                List<Integer> picFormatsSub = parametersSub.getSupportedPictureFormats();
+                if (picFormatsSub.contains(PixelFormat.JPEG)) {
+                    parametersSub.setPictureFormat(PixelFormat.JPEG);
+                }
+                //========== for SHANGZHU=========
+                parametersSub.setPreviewSize(1280, 720);
+                parametersSub.setPictureSize(1280, 720);
+                //================================
+                List<String> focusModesSub = parametersSub.getSupportedFocusModes();
+                if (focusModesSub.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                    parametersSub.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                }
+                mCameraSub.setParameters(parametersSub);
+                mCameraSub.setPreviewCallback(mCameraFrameWorkSub);
             }
-            List<Integer> picFormatsSub = parametersSub.getSupportedPictureFormats();
-            if (picFormatsSub.contains(PixelFormat.JPEG)) {
-                parametersSub.setPictureFormat(PixelFormat.JPEG);
-            }
-            //========== for SHANGZHU=========
-            parametersSub.setPreviewSize(1280, 720);
-            parametersSub.setPictureSize(1280, 720);
-            //================================
-            List<String> focusModesSub = parametersSub.getSupportedFocusModes();
-            if (focusModesSub.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-                parametersSub.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            }
-            mCameraSub.setParameters(parametersSub);
-            mCameraSub.setPreviewCallback(mCameraFrameWorkSub);
-
 
             mCamera.startPreview();//开始预览
-            mCameraSub.startPreview();
+            if(MyApplication.idcardfdv_subCameraEnable) {
+                mCameraSub.startPreview();
+            }
             isPreview = true;//设置是否预览参数为真
         } catch (IOException e) {
             Log.e("surfaceCreated", e.toString());
@@ -229,7 +234,7 @@ public class CameraMgt {
         return retSize;
     }
 
-    private void setSuitableSureface(){
+    private void setSuitableSurface(){
         Camera.Size previewSize;
         try {
             previewSize = mCamera.getParameters().getPreviewSize();
@@ -247,13 +252,13 @@ public class CameraMgt {
             cameraLP.height = CameraActivityData.CameraActivity_height;
             //cameraLP.width = cameraLP.height * previewSize.width / previewSize.height; // 保持宽高比
             cameraLP.width = CameraActivityData.CameraActivity_width; // 拉伸全屏
-            //mSurfaceView.setTranslationX(CameraActivityData.CameraActivity_width * 0.15f); // 公安提醒占0.4, 截图从0.25起
+            mSurfaceView.setTranslationX(CameraActivityData.CameraActivity_width * 0.15f); // 公安提醒占0.4, 截图从0.25起
 
             // 设置人脸框绘图窗口大小，与预览窗口等大
             ViewGroup.LayoutParams facerectL = mFaceRect.getLayoutParams();
             facerectL.height = cameraLP.height;
             facerectL.width = cameraLP.width;
-            //mFaceRect.setTranslationX(CameraActivityData.CameraActivity_width * 0.15f);
+            mFaceRect.setTranslationX(CameraActivityData.CameraActivity_width * 0.15f);
         }
     }
 

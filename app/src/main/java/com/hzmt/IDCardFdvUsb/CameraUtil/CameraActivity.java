@@ -98,7 +98,7 @@ public class CameraActivity extends AppCompatActivity{
         assetExtractor = new AssetExtractor(this);
 
         // service
-        if(!AppUtils.isServiceRunning(this,"com.hzmt.idcardfdvupgrade.UploadSrv")) {
+        if(!AppUtils.isServiceRunning(this,"com.hzmt.idcardfdvupload.UploadSrv")) {
             Intent uploadIntent = new Intent();
             ComponentName cn = new ComponentName("com.hzmt.idcardfdvupload", "com.hzmt.idcardfdvupload.UploadSrv");
             uploadIntent.setComponent(cn);
@@ -372,9 +372,13 @@ public class CameraActivity extends AppCompatActivity{
             }
 
             if(CameraActivityData.capture_face_enable) {
-                CameraActivityData.CameraImageDataSub = null;
-                CameraActivityData.capture_subface_done = false;
-                CameraActivityData.capture_subface_enable = true;
+                if(MyApplication.idcardfdv_subCameraEnable) {
+                    CameraActivityData.CameraImageDataSub = null;
+                    CameraActivityData.capture_subface_done = false;
+                    CameraActivityData.capture_subface_enable = true;
+                }
+                else
+                    CameraActivityData.capture_subface_done = true;
                 FdvCameraFaceThread fdvCameraFaceTh = new FdvCameraFaceThread(CameraActivity.this,
                         data,
                         mCameraMgt.getCurrentCameraId(),
@@ -591,9 +595,12 @@ public class CameraActivity extends AppCompatActivity{
     /**
      * 保存图片
      */
-    public static void saveUploadBitmapJPEG(Context ctx, Bitmap bitmap, String prename) {
+    public static void saveUploadBitmap(Context ctx, Bitmap bitmap, String fullname,Bitmap.CompressFormat format) {
+        if(bitmap == null)
+            return;
+
         // 图片存放路径
-        String path = ctx.getExternalFilesDir(null).getAbsolutePath();
+        String path = ctx.getFilesDir().getAbsolutePath();
         String uploadDir = path + "/UPLOAD/";
 
         try {
@@ -601,9 +608,9 @@ public class CameraActivity extends AppCompatActivity{
             if (!dirFile.exists()) {
                 dirFile.mkdirs();
             }
-            File file = new File(uploadDir, prename + ".jpeg");
+            File file = new File(uploadDir, fullname);
             FileOutputStream fos = new FileOutputStream(file);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            bitmap.compress(format, 100, fos);
             fos.flush();
             fos.close();
         } catch (FileNotFoundException e) {
@@ -616,7 +623,7 @@ public class CameraActivity extends AppCompatActivity{
 
     public static void saveUploadBitmapBMP(Context ctx, byte[] data, String prename) {
         // 图片存放路径
-        String path = ctx.getExternalFilesDir(null).getAbsolutePath();
+        String path = ctx.getFilesDir().getAbsolutePath();
         String uploadDir = path + "/UPLOAD/";
 
         try {

@@ -186,14 +186,13 @@ public class FdvWorkThread extends Thread {
         IdcardFdv.RequestCallBack reqcb = new IdcardFdv.RequestCallBack() {
             @Override
             public void onSuccess(JSONObject object) {
-                Log.e("IdcardFdv cb", object.toString());
+                //Log.e("IdcardFdv cb", object.toString());
                 boolean saveUpload = false;
                 double sim = 0.0f;
                 String serial_no = "";
                 try {
                     if (object.getInt("Err_no") == 0){
-                        if(1 == MyApplication.idcardfdv_requestType)
-                            serial_no = object.getString("Serial_No");
+                        serial_no = object.getString("Serial_No");
 
                         sim = object.getDouble("Similarity");
                         String retstr = String.format("%.1f%%",sim * 100);
@@ -299,8 +298,22 @@ public class FdvWorkThread extends Thread {
                             serial_no,
                             simInt);
                     if(!MyApplication.DebugNoIDCardReader) {
-                        //CameraActivity.saveUploadBitmapBMP(CameraActivityData.PhotoImageData, prename + "_0");
-                        //CameraActivity.saveUploadBitmapJPEG(CameraActivityData.CameraImage, prename + "_1");
+                        // 身份证照片
+                        if(!CameraActivityData.idcardfdv_NoIDCardMode)
+                            CameraActivity.saveUploadBitmap(cbctx, CameraActivityData.PhotoImage,
+                                                prename + "_0.png", Bitmap.CompressFormat.PNG);
+
+                        // 主摄像头照片
+                        CameraActivity.saveUploadBitmap(cbctx,CameraActivityData.UploadCameraImage,
+                                            prename + "_1.jpeg", Bitmap.CompressFormat.JPEG);
+                        // 红外照片
+                        if(MyApplication.idcardfdv_subCameraEnable) {
+                            CameraActivity.saveUploadBitmap(cbctx, CameraActivityData.UploadCameraImageSub,
+                                                prename + "_2.jpeg",Bitmap.CompressFormat.JPEG);
+                        }
+
+                        CameraActivityData.UploadCameraImage = null;
+                        CameraActivityData.UploadCameraImageSub = null;
                     }
                 }
             }

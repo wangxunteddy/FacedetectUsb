@@ -15,9 +15,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 public class FdvRestfulService extends Service {
 
@@ -42,6 +47,8 @@ public class FdvRestfulService extends Service {
 
     @Override
     public void onCreate() {
+        //SSLContext sslContext = getSLLContext();
+
         mInfos = new IDCardInfos();
         server.get("/retrieveidfvinfo",new HttpServerRequestCallback() {
             @Override
@@ -70,6 +77,8 @@ public class FdvRestfulService extends Service {
             }
         });
 
+				
+				/* // 不开放
         server.post("/faceverification",new HttpServerRequestCallback() {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
@@ -165,6 +174,7 @@ public class FdvRestfulService extends Service {
                 response.send(resultJSON.toString());
             }
         });
+        */
 
         server.listen(8010);
 
@@ -209,5 +219,25 @@ public class FdvRestfulService extends Service {
         public FdvRestfulService getService() {
             return FdvRestfulService.this;
         }
+    }
+
+    public  SSLContext getSLLContext() {
+        SSLContext sslContext = null;
+        try {
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(null, null);
+
+
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            KeyStore ts = KeyStore.getInstance(KeyStore.getDefaultType());
+            ts.load(null, null);
+
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return sslContext;
     }
 }

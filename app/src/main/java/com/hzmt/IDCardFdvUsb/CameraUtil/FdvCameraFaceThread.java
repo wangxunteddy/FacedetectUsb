@@ -24,6 +24,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
     private Camera mCamera;
     private int mCameraIdx;
 
+    private Bitmap mFullBm;
     private Bitmap mBaseBm;
     private Bitmap mFaceBm;
 
@@ -56,15 +57,20 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
                 null);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         yuvimage.compressToJpeg(
-                new Rect(previewSize.width / 4, // 裁去两边
+                new Rect(previewSize.width / 4,
                         0,
                         previewSize.width * 3 / 4,
                         previewSize.height),
                 100,
                 baos);
         byte[] rawImage =baos.toByteArray();
-        mBaseBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
+        mFullBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
 
+        mBaseBm = mFullBm;
+        //mBaseBm = Bitmap.createBitmap(mFullBm,
+        //        previewSize.width / 4, 0,
+        //        previewSize.width / 2, previewSize.height,
+        //        null, false);
 
         // 等待sub获取数据。
         while(!CameraActivityData.capture_subface_done){
@@ -79,13 +85,20 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
 
         // face detect
         Rect face = new Rect();
-        //boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
-        String faceb64 = MyApplication.AiFdrScIns.livecheck(
-                mBaseBm,
-                CameraActivityData.CameraImageSub,
-                face,
-                95,
-                0);
+        String faceb64 = "";
+        if(MyApplication.idcardfdv_subCameraEnable) {
+            faceb64 = MyApplication.AiFdrScIns.livecheck(
+                    mBaseBm,
+                    CameraActivityData.CameraImageSub,
+                    face,
+                    95,
+                    0);
+        }
+        else{
+            boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
+            if(detect)
+                faceb64 = MyApplication.AiFdrScIns.ai_fdr_get_face(face,95);
+        }
 
         //long nt = System.currentTimeMillis();
         //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),mBaseBm,nt+"_00");
@@ -116,6 +129,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             CameraActivityData.CameraImageData = rawImage;
             CameraActivityData.CameraImage = mBaseBm;
             CameraActivityData.CameraImageB64 = faceb64;
+            CameraActivityData.UploadCameraImage = mFullBm;
 
             CameraActivityData.CameraImageFeat = "";
             if(1 == MyApplication.idcardfdv_requestType) {
