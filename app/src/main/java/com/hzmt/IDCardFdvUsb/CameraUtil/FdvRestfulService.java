@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 
+import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse;
@@ -73,7 +74,12 @@ public class FdvRestfulService extends Service {
                 info_map.put("err_msg", "success");
 
                 JSONObject resultJSON = new JSONObject(info_map);
-                response.send(resultJSON.toString());
+                String retStr = resultJSON.toString().replace("\\/", "/"); // 去转义字符
+
+                Headers headers = response.getHeaders();
+                headers.set("Access-Control-Allow-Origin","*"); // 允许跨域
+
+                response.send(retStr);
             }
         });
 
@@ -171,7 +177,8 @@ public class FdvRestfulService extends Service {
                 }
 
                 JSONObject resultJSON = new JSONObject(info_map);
-                response.send(resultJSON.toString());
+                String retStr = resultJSON.toString().replace("\\/", "/"); // 去转义字符
+                response.send(retStr);
             }
         });
         */

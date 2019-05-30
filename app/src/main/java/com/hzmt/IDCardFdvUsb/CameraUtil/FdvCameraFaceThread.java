@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
 
@@ -49,7 +50,21 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             return null;
         }
 
-        YuvImage yuvimage = new YuvImage(
+        CameraActivity activity = mActivity.get();
+        if(activity == null )
+            return null;
+
+        //long cmptime = System.currentTimeMillis();
+        mFullBm = activity.mNV21ToBitmap.nv21ToBitmap(mData, previewSize.width, previewSize.height);
+        if(MyApplication.idcardfdv_subCameraEnable) {
+            mBaseBm = Bitmap.createBitmap(mFullBm,
+                    previewSize.width / 4, 0,
+                    previewSize.width / 2, previewSize.height,
+                    null, false);
+        }
+        else
+            mBaseBm = mFullBm;
+        /*YuvImage yuvimage = new YuvImage(
                 mData,
                 ImageFormat.NV21,
                 previewSize.width,
@@ -65,12 +80,11 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
                 baos);
         byte[] rawImage =baos.toByteArray();
         mFullBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
-
         mBaseBm = mFullBm;
-        //mBaseBm = Bitmap.createBitmap(mFullBm,
-        //        previewSize.width / 4, 0,
-        //        previewSize.width / 2, previewSize.height,
-        //        null, false);
+        */
+        //long dttime = System.currentTimeMillis() - cmptime;
+        //Log.i("nv21toBtimap",""+dttime);
+
 
         // 等待sub获取数据。
         while(!CameraActivityData.capture_subface_done){
@@ -100,6 +114,13 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
                 faceb64 = MyApplication.AiFdrScIns.ai_fdr_get_face(face,95);
         }
 
+        // 越界忽略
+        if( face.left < 0 || face.top < 0 ||
+                face.right >= mBaseBm.getWidth() || face.bottom >= mBaseBm.getHeight())
+        {
+            faceb64 = null;
+        }
+
         //long nt = System.currentTimeMillis();
         //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),mBaseBm,nt+"_00");
         //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),CameraActivityData.CameraImageSub,nt+"_01");
@@ -108,37 +129,33 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             // test code
             long detectDone = System.currentTimeMillis();
             long detectTime = detectDone - MyApplication.idcardfdvCameraCnt;
-            CameraActivity ac = mActivity.get();
-            if(ac != null) {
-                ac.mDebugLayout.addText("FDV-detect Time:" + detectTime + "\n");
-            }
+            activity.mDebugLayout.addText("FDV-detect Time:" + detectTime + "\n");
             //===================
             publishProgress(CAMERA_FACE_DETECTED);
             Rect cropRect = new Rect(face);
             if(cropRect.left < 0) cropRect.left = 0;
             if(cropRect.top < 0) cropRect.top = 0;
-            if(cropRect.right > mBaseBm.getWidth()) cropRect.right = mBaseBm.getWidth();
-            if(cropRect.bottom > mBaseBm.getHeight()) cropRect.bottom = mBaseBm.getHeight();
+            if(cropRect.right > mBaseBm.getWidth() - 1) cropRect.right = mBaseBm.getWidth() - 1;
+            if(cropRect.bottom > mBaseBm.getHeight() - 1) cropRect.bottom = mBaseBm.getHeight() - 1;
             mFaceBm = Bitmap.createBitmap(mBaseBm,
                     cropRect.left, cropRect.top,
-                    cropRect.right - cropRect.left,
-                    cropRect.bottom-cropRect.top,
+                    cropRect.width(),
+                    cropRect.height(),
                     null, false);
             publishProgress(CAMERA_FACE_IMG_OK);
 
-            CameraActivityData.CameraImageData = rawImage;
+            //CameraActivityData.CameraImageData = rawImage;
             CameraActivityData.CameraImage = mBaseBm;
             CameraActivityData.CameraImageB64 = faceb64;
-            CameraActivityData.UploadCameraImage = mFullBm;
+            CameraActivityData.UploadCameraImage = mBaseBm;//mFullBm;
 
             CameraActivityData.CameraImageFeat = "";
             if(1 == MyApplication.idcardfdv_requestType) {
-                CameraActivity activity = mActivity.get();
                 // image feat
                 synchronized(CameraActivityData.AiFdrSclock) {
-                    long stime = new Date().getTime();
+                    long stime = System.currentTimeMillis();
                     CameraActivityData.CameraImageFeat = MyApplication.AiFdrScIns.get_camera_feat(mBaseBm,face);
-                    long feattime = new Date().getTime() - stime;
+                    long feattime = System.currentTimeMillis() - stime;
                     if(activity != null)
                         activity.mDebugLayout.addText("CameraFeatTime:"+feattime+"\n");
                 }
@@ -154,8 +171,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             //===================
             // test code
             long cameraImgTime = System.currentTimeMillis() - detectDone;
-            if(ac != null)
-                ac.mDebugLayout.addText("FDV-cameraImg Time:"+cameraImgTime+"\n");
+            activity.mDebugLayout.addText("FDV-cameraImg Time:"+cameraImgTime+"\n");
             //===================
 
             if((1 == MyApplication.idcardfdv_requestType)

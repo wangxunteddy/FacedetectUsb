@@ -30,7 +30,8 @@ public class B64Util {
                 baos.close();
 
                 byte[] bitmapBytes = baos.toByteArray();
-                result = Base64.encodeToString(bitmapBytes, Base64.DEFAULT);
+                // Base64.NO_WRAP 省略换行符
+                result = Base64.encodeToString(bitmapBytes, Base64.NO_WRAP);// Base64.DEFAULT
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,7 +54,7 @@ public class B64Util {
      * @return
      */
     public static Bitmap base64ToBitmap(String base64Data) {
-        byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
+        byte[] bytes = Base64.decode(base64Data, Base64.NO_WRAP); // Base64.DEFAULT
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
     }
 }

@@ -10,10 +10,12 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.widget.Toast;
 
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 import com.invs.UsbSam;
 import com.invs.invswlt;
 
 import cn.mineki.CardReaders.IDCardInfo;
+import cn.mineki.CardReaders.IUsbReaderCallback;
 import cn.mineki.CardReaders.UsbReader;
 
 public class IDCardReader extends UsbSam{
@@ -28,6 +30,7 @@ public class IDCardReader extends UsbSam{
     private UsbReader mkrReader = null;
     private IDCardInfo mkr_idCardInfo = null;
     private boolean mkr_isOldModule = false;
+    private boolean mkr_deAttach = false;
     //=====================
 
     public static final int STATE_NO_DEV = -1;
@@ -58,7 +61,7 @@ public class IDCardReader extends UsbSam{
                     }
                     else {
                         //user choose NO for your previously popup window asking for grant perssion for this usb device
-                        //Toast.makeText(context, String.valueOf("Permission denied for device" + usbDevice), Toast.LENGTH_SHORT).show();
+                        //ShowToastUtils.showToast(context, String.valueOf("Permission denied for device" + usbDevice), Toast.LENGTH_SHORT);
                         afterRefuseUsbPermission(context);
                     }
                 }
@@ -71,9 +74,9 @@ public class IDCardReader extends UsbSam{
         UsbDevice myUsbDevice = GetUsb(context);
         if(null == myUsbDevice) {
             mInitState = STATE_NO_DEV;
-            String errMsg = "未找到身份证读卡器!";
-            Toast.makeText(context, errMsg, Toast.LENGTH_SHORT).show();
-            //Log.e(TAG,"未找到身份证读卡器USB");
+            //String errMsg = "未找到身份证阅读器!";
+            //ShowToastUtils.showToast(context, errMsg, Toast.LENGTH_SHORT);
+            //Log.e(TAG,"未找到身份证阅读器USB");
             return -1;
         }
 
@@ -100,8 +103,8 @@ public class IDCardReader extends UsbSam{
         int iRet = InitIDCardReader(context);
         if (iRet != 0) {
             mInitState = STATE_INIT_ERR;
-            String errMsg = "未找到读卡器!";
-            Toast.makeText(context, errMsg, Toast.LENGTH_SHORT).show();
+            String errMsg = "身份证阅读器初始化失败!";
+            //ShowToastUtils.showToast(context, errMsg, Toast.LENGTH_SHORT);
         } else
             mInitState = STATE_INIT_OK;
     }
@@ -114,7 +117,22 @@ public class IDCardReader extends UsbSam{
         if(mkrReader == null)
             mkrReader = UsbReader.getInstance(context);
 
-        if(mkrReader.InitReader(null,null)) {
+        boolean mkrret = mkrReader.InitReader(null,new IUsbReaderCallback() {
+            @Override
+            public void ReaderInitSucc() {
+            }
+            @Override
+            public void ReaderInitError() {
+            }
+            @Override
+            public void UsbAttach() {
+            }
+            @Override
+            public void UsbDeAttach(){
+                mkr_deAttach = true;
+            }
+        });
+        if(mkrret) {
             String[] sRet = new String[1];
             String sSamID = mkrReader.ReadSAMID(sRet);
             if(sSamID.indexOf("05.01") >= 0|| sSamID.indexOf("05.02") >= 0)
@@ -122,6 +140,7 @@ public class IDCardReader extends UsbSam{
 
             mkrReader.GetAct();
             mReaderType = READER_MKR;
+            mkr_deAttach = false;
             return 0;
         }
 
@@ -140,6 +159,24 @@ public class IDCardReader extends UsbSam{
 
     public int GetInitState(){
         return mInitState;
+    }
+
+    public boolean IsReaderConnected(){
+        if (mInitState == IDCardReader.STATE_NO_DEV ||
+                mInitState == IDCardReader.STATE_INIT_ERR )
+            return false;
+
+        if(mReaderType == READER_MKR){
+            if(mkr_deAttach)
+                return false;
+        }
+        else if(mReaderType == READER_INVS){
+            int iRet = this.FindCardCmd();
+            if (iRet != 128 && iRet != 159 )    // 找卡失败，且不是无卡和已读
+                return false;
+        }
+
+        return true;
     }
 
     public int Authenticate_IDCard() {

@@ -20,6 +20,7 @@ import android.text.InputType;
 import android.widget.Toast;
 
 import com.hzmt.IDCardFdvUsb.R;
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.regex.Matcher;
@@ -122,7 +123,7 @@ public class InfoLayout {
                         CameraActivityData.FdvIDCardInfos.idcard_id = "";
                         CameraActivityData.idcardfdv_IDCardNoReady = false;
                         String errMsg = "输入的身份证号码无效！";
-                        Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();
+                        ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                     }
                 }
             }

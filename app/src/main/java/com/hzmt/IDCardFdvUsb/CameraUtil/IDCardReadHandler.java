@@ -5,6 +5,8 @@ import android.os.Message;
 import android.view.View;
 import android.widget.Toast;
 
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
+
 import java.lang.ref.WeakReference;
 
 public class IDCardReadHandler extends Handler {
@@ -21,12 +23,22 @@ public class IDCardReadHandler extends Handler {
             case IDCardReadThread.IDCARD_ERR_READERR:
                 if (activity != null) {
                     String errMsg = "身份证读卡失败!";
-                    Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();
+                    ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                     // 屏幕亮度及信息清理Timer
                     CameraActivity.startBrightnessWork(activity);
                 }
 
                 CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_ERR_READERR;
+                break;
+            case IDCardReadThread.IDCARD_REOPEN_READER:
+                if (activity == null)
+                    break;
+                activity.mIDCardReader.CloseIDCardReader();
+                activity.mIDCardReader.OpenIDCardReader(activity);
+                if(activity.mIDCardReader.GetInitState() == IDCardReader.STATE_INIT_OK){
+                    String errMsg = "已连接身份证阅读器!";
+                    ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
+                }
                 break;
             case IDCardReadThread.IDCARD_READY:
                 if (activity != null)

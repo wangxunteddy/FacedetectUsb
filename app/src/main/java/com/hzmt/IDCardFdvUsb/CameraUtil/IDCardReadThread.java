@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.os.Message;
+import android.util.Log;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
 import com.hzmt.IDCardFdvUsb.R;
@@ -14,6 +15,7 @@ import java.lang.ref.WeakReference;
 public class IDCardReadThread extends Thread {
     public static final int IDCARD_ERR_DEVERR = -1;
     public static final int IDCARD_ERR_READERR = -2;
+    public static final int IDCARD_REOPEN_READER = -3;
     public static final int IDCARD_STATE_NONE = 0;
     public static final int IDCARD_READY = 1;
     public static final int IDCARD_CHECK_OK = 2;
@@ -132,6 +134,7 @@ public class IDCardReadThread extends Thread {
                         activity.mDebugLayout.addText("read card: true\n");
                         dbgstr = "idcardno:" + CameraActivityData.FdvIDCardInfos.idcard_id;
                         activity.mDebugLayout.addText(dbgstr + "\n");
+                        //Log.i("IDCardReader","" +(System.currentTimeMillis()-MyApplication.idcardfdvTotalCnt));
 
                         break;
                     } else {
@@ -140,7 +143,11 @@ public class IDCardReadThread extends Thread {
                         CameraActivityData.PhotoImageData = null;
                         break;
                     }
-                } else {
+                } else if(-1 == iRet){
+                    // 错误，包括无阅读器和其他读取错误
+                }
+                else{
+                    // invs300: 无卡或卡已读
                     //activity.mDebugLayout.addText("Authenticate: false," + iRet + "\n");
                 }
             }

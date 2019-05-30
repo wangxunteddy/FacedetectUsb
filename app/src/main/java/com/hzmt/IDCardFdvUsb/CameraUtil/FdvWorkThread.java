@@ -10,6 +10,7 @@ import android.widget.Toast;
 import com.hzmt.IDCardFdvUsb.MyApplication;
 import com.hzmt.IDCardFdvUsb.util.B64Util;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdv;
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -170,7 +171,7 @@ public class FdvWorkThread extends Thread {
                 CameraActivityData.FdvIDCardInfos.idcard_photo = idcard_photo;
             }
             //long b64time = System.currentTimeMillis();
-            verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.DEFAULT);
+            verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.NO_WRAP);
             //b64time = System.currentTimeMillis() - b64time;
             //activity.mDebugLayout.addText("b64time:"+b64time+"\n");
         }
@@ -265,7 +266,7 @@ public class FdvWorkThread extends Thread {
                             cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
 
                         String err_msg = object.getString("Err_msg");
-                        Toast.makeText(cbctx, err_msg, Toast.LENGTH_SHORT).show();
+                        ShowToastUtils.showToast(cbctx, err_msg, Toast.LENGTH_SHORT);
                     }
                 } catch (JSONException e) {
                     CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
@@ -336,7 +337,7 @@ public class FdvWorkThread extends Thread {
                     CameraActivityData.FdvIDCardInfos.idcard_id = "";
                 }
 
-                Toast.makeText(cbctx, "网络请求错误！", Toast.LENGTH_SHORT).show();
+                ShowToastUtils.showToast(cbctx, "网络请求错误！", Toast.LENGTH_SHORT);
                 CameraActivity.startBrightnessWork(cbctx);
                 delayResumeFdvWork(cbctx,3*1000);
             }

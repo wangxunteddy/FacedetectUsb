@@ -6,14 +6,18 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.ref.WeakReference;
 
-public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
+public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
+    public static final int REOPEN_IDCARDREADER = 0;
+
     private final WeakReference<CameraActivity> mActivity;
     private byte[] mData;
     private Camera mCamera;
@@ -40,26 +44,25 @@ public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
             return null;
         }
 
-        YuvImage yuvimage = new YuvImage(
-                mData,
-                ImageFormat.NV21,
-                previewSize.width,
-                previewSize.height,
-                null);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        yuvimage.compressToJpeg(
-                new Rect(0,
-                        0,
-                        previewSize.width,
-                        previewSize.height),
-                80,
-                baos);
-        byte[] rawImage =baos.toByteArray();
-        Bitmap fullPreviewBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
+        CameraActivity activity = mActivity.get();
+        if(activity == null )
+            return null;
+
+        Bitmap fullPreviewBm = activity.mNV21ToBitmap.nv21ToBitmap(mData, previewSize.width, previewSize.height);
 
         // face detect
         Rect face = new Rect();
         boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
+
+        // 检查和重新初始化阅读器
+        CameraActivityData.CheckIDCardReaderCnt++;
+        if(CameraActivityData.CheckIDCardReaderCnt > 3){
+            if (!activity.mIDCardReader.IsReaderConnected()) {
+                activity.mIDCardReader.CloseIDCardReader();
+                publishProgress(REOPEN_IDCARDREADER);
+            }
+            CameraActivityData.CheckIDCardReaderCnt = 0;
+        }
 
         if (detect) {
             return face;
@@ -89,20 +92,22 @@ public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
                     int readerState = activity.mIDCardReader.GetInitState();
                     if (IDCardReader.STATE_NO_DEV == readerState ||
                             IDCardReader.STATE_INIT_ERR == readerState) {
-                        String errMsg = "未找到身份证读卡器!";
-                        Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();
+                        CameraActivity.startBrightnessWork(activity);
+                        String errMsg = "未找到身份证阅读器!";
+                        ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                         try {
-                            Thread.sleep(2000);
+                            Thread.sleep(10);
                         } catch (InterruptedException e){
                             e.printStackTrace();
                         }
                         CameraActivityData.detect_face_enable = true;
                         return;
                     } else if (IDCardReader.STATE_REFUSE_PERMISSION == readerState) {
-                        String errMsg = "无权限访问身份证读卡器!";
-                        Toast.makeText(activity, errMsg, Toast.LENGTH_SHORT).show();
+                        CameraActivity.startBrightnessWork(activity);
+                        String errMsg = "无权限访问身份证阅读器!";
+                        ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                         try {
-                            Thread.sleep(2000);
+                            Thread.sleep(10);
                         } catch (InterruptedException e){
                             e.printStackTrace();
                         }
@@ -121,5 +126,23 @@ public class DetectFaceThread extends AsyncTask<Void, Void, Rect>{
         }
         else
             CameraActivityData.detect_face_enable = true;
+    }
+
+    @Override
+    protected void onProgressUpdate(Integer... values) {
+        CameraActivity activity = mActivity.get();
+        if (activity == null)
+            return;
+
+        int value = values[0];
+        switch(value) {
+            case REOPEN_IDCARDREADER:
+                activity.mIDCardReader.OpenIDCardReader(activity);
+                if(activity.mIDCardReader.GetInitState() == IDCardReader.STATE_INIT_OK){
+                    String msg = "已连接身份证阅读器!";
+                    ShowToastUtils.showToast(activity, msg, Toast.LENGTH_SHORT);
+                }
+                break;
+        }
     }
 }

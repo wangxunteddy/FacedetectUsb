@@ -22,6 +22,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.util.Log;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -53,6 +54,8 @@ import com.hzmt.IDCardFdvUsb.SubActivity;
 import com.hzmt.IDCardFdvUsb.util.AppUtils;
 import com.hzmt.IDCardFdvUsb.util.AssetExtractor;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
+import com.hzmt.IDCardFdvUsb.util.NV21ToBitmap;
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
 
 public class CameraActivity extends AppCompatActivity{
@@ -61,8 +64,12 @@ public class CameraActivity extends AppCompatActivity{
     private static final int PERMISSION_CAMERA = 2;
     private static final int PERMISSION_STORAGE = 3;
     private static final int TOAST_OFFSET_PERMISSION_RATIONALE = 100;
+
     List<Integer> mPermissionIdxList = new ArrayList<>();
     private CameraMgt mCameraMgt;
+    public NV21ToBitmap mNV21ToBitmap;
+    public NV21ToBitmap mNV21ToBitmapSub;
+
     private SurfaceView mPreviewSV;
     private SurfaceDraw mFaceRect;
     public  InfoLayout mInfoLayout;
@@ -153,6 +160,8 @@ public class CameraActivity extends AppCompatActivity{
         mFaceRect.setVisibility(View.VISIBLE);
 
         mCameraMgt = new CameraMgt(this, mPreviewSV, mFaceRect);
+        mNV21ToBitmap = new NV21ToBitmap(this);
+        mNV21ToBitmapSub = new NV21ToBitmap(this);
         if(MyApplication.certstream_baos == null){
             try {
                 MyApplication.certstream_baos = new ByteArrayOutputStream();
@@ -308,9 +317,14 @@ public class CameraActivity extends AppCompatActivity{
 
         // IDCardReader
         mIDCardReader = new IDCardReader();
-        mIDCardReader.OpenIDCardReader(this);
+        int oret = mIDCardReader.OpenIDCardReader(this);
+        if(oret == -1){
+            String errMsg = "未找到身份证阅读器!";
+            ShowToastUtils.showToast(this, errMsg, Toast.LENGTH_SHORT);
+        }
         mIDCardReadHandler = new IDCardReadHandler(this);
         CameraActivityData.FdvIDCardInfos = new IDCardInfos();
+        CameraActivityData.CheckIDCardReaderCnt = 0;
 
         // handler for fdv work
         mFdvWorkHandler = new FdvWorkHandler(this);
@@ -346,19 +360,18 @@ public class CameraActivity extends AppCompatActivity{
                 return;
         }
 
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        ShowToastUtils.showToast(this, msg, Toast.LENGTH_SHORT);
     }
 
     private Camera.PreviewCallback mPreviewCB = new Camera.PreviewCallback(){
         @Override
         public void onPreviewFrame(byte[] data, Camera camera){
-
             if(camera.getParameters().getPreviewFormat() != ImageFormat.NV21)
                 return;
 
             //Camera.Size s = camera.getParameters().getPreviewSize();
             //String pres = s.width+" x " +s.height;
-            //Toast.makeText(CameraActivity.this, pres, Toast.LENGTH_LONG).show();
+            //ShowToastUtils.showToast(CameraActivity.this, pres, Toast.LENGTH_LONG);
 
 
             if(CameraActivityData.detect_face_enable){
@@ -373,7 +386,7 @@ public class CameraActivity extends AppCompatActivity{
 
             if(CameraActivityData.capture_face_enable) {
                 if(MyApplication.idcardfdv_subCameraEnable) {
-                    CameraActivityData.CameraImageDataSub = null;
+                    //CameraActivityData.CameraImageDataSub = null;
                     CameraActivityData.capture_subface_done = false;
                     CameraActivityData.capture_subface_enable = true;
                 }
@@ -394,6 +407,7 @@ public class CameraActivity extends AppCompatActivity{
     private Camera.PreviewCallback mSubPreviewCB = new Camera.PreviewCallback() {
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
+
             if(camera.getParameters().getPreviewFormat() != ImageFormat.NV21)
                 return;
 
@@ -467,6 +481,7 @@ public class CameraActivity extends AppCompatActivity{
     @Override
     public void onDestroy(){
         mIDCardReader.CloseIDCardReader();
+        CameraActivityData.CheckIDCardReaderCnt = 0;
         mATRight.release();
         mATWrong.release();
 

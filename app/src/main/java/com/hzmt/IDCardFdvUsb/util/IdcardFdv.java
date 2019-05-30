@@ -351,10 +351,10 @@ public class IdcardFdv {
             int t = (int) (pointF.y - eyesDistance);
             if (t < 0) t = 0;
             int r = (int) (pointF.x + eyesDistance);
-            if (r > maxX) r = maxX;
+            if (r > maxX - 1) r = maxX -1;
             int b = (int) (pointF.y + eyesDistance);
-            if (b > maxY) b = maxY;
-            Bitmap newBM = Bitmap.createBitmap(origin, l, t, r-l, b-t, null, false);
+            if (b >= maxY -1) b = maxY - 1;
+            Bitmap newBM = Bitmap.createBitmap(origin, l, t, r-l+1, b-t+1, null, false);
             if(!newBM.equals(origin) )
                 origin.recycle();
 

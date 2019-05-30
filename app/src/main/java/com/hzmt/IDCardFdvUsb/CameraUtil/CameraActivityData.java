@@ -34,13 +34,16 @@ public class CameraActivityData {
     public static final int RESULT_PASS = 1;
     public static int idcardfdv_result = RESULT_NONE;   // 识别结果标记
 
+    public static long testTime = 0;
+
     public static int idcardfdv_idcardState = 0;
     public static int idcardfdv_cameraState = 0;
+    public static int CheckIDCardReaderCnt = 0;
     public static byte[] PhotoImageData = null;
     public static Bitmap PhotoImage;
     public static String PhotoImageFeat;
-    public static byte[] CameraImageData = null;
-    public static byte[] CameraImageDataSub = null;
+//    public static byte[] CameraImageData = null;
+//    public static byte[] CameraImageDataSub = null;
     public static Bitmap CameraImage = null;
     public static Bitmap CameraImageSub = null;
     public static String CameraImageFeat;

@@ -230,7 +230,7 @@ public class CameraMgt {
             //pres += "   ";
         }
 
-        //Toast.makeText(mActivity, pres, Toast.LENGTH_LONG).show();
+        //ShowToastUtils.showToast(mActivity, pres, Toast.LENGTH_LONG);
         return retSize;
     }
 
@@ -312,7 +312,7 @@ public class CameraMgt {
         public void surfaceChanged(SurfaceHolder surfaceHolder, int format, int width, int height) {
             //String s=String.format("w:%d,h:%d",width,height);
             //Log.e("surfaceChanged", s);
-            //Toast.makeText(mActivity, s, Toast.LENGTH_LONG).show();
+            //ShowToastUtils.showToast(mActivity, s, Toast.LENGTH_LONG);
         }
 
         /**

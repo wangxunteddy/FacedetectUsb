@@ -44,7 +44,7 @@ public class SurfaceDraw extends SurfaceView implements SurfaceHolder.Callback{
     public void surfaceChanged(SurfaceHolder surfaceHolder, int format, int width, int height) {
        //String s=String.format("w:%d,h:%d",width,height);
        // Log.e("surfaceChanged", s);
-       // Toast.makeText(getContext(), s, Toast.LENGTH_LONG).show();
+       // ShowToastUtils.showToast(getContext(), s, Toast.LENGTH_LONG);
     }
 
     /**

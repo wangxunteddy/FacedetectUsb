@@ -34,6 +34,16 @@ public class FdvSubCameraFaceThread extends Thread{
             return;
         }
 
+        CameraActivity activity = mActivity.get();
+        if(activity == null )
+            return;
+
+        Bitmap fullBm = activity.mNV21ToBitmapSub.nv21ToBitmap(mData, previewSize.width, previewSize.height);
+        Bitmap bm = Bitmap.createBitmap(fullBm,
+                previewSize.width / 4, 0,
+                previewSize.width / 2, previewSize.height,
+                null, false);
+        /*
         YuvImage yuvimage = new YuvImage(
                 mData,
                 ImageFormat.NV21,
@@ -51,16 +61,14 @@ public class FdvSubCameraFaceThread extends Thread{
         byte[] rawImage =baos.toByteArray();
         Bitmap fullBm = CameraMgt.getBitmapFromBytes(rawImage, mCameraIdx, 1);
         Bitmap bm = fullBm;
-        //Bitmap bm = Bitmap.createBitmap(fullBm,
-        //        previewSize.width / 4, 0,
-        //        previewSize.width / 2, previewSize.height,
-        //        null, false);
+        */
 
-        CameraActivityData.CameraImageDataSub = rawImage;
+
+     //   CameraActivityData.CameraImageDataSub = rawImage;
         CameraActivityData.CameraImageSub = bm;
         CameraActivityData.capture_subface_done = true;
 
-        CameraActivityData.UploadCameraImageSub = fullBm;
+        CameraActivityData.UploadCameraImageSub = bm;//fullBm;
         return;
     }
 }
