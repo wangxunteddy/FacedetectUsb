@@ -38,7 +38,7 @@ public class MyApplication extends Application {
     public static String accessControlUrl = "192.168.1.124:60000";
     public static String accessControlSn = "153134193";
     public static Long accessControlCnt = null;
-
+    
     // debug and test
     public static byte[] TestImageData = null;
     public static int idcardfdv_requestType = 0;    // image fdv
