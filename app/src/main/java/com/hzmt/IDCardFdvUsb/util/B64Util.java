@@ -57,4 +57,24 @@ public class B64Util {
         byte[] bytes = Base64.decode(base64Data, Base64.NO_WRAP); // Base64.DEFAULT
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
     }
+
+    /**
+     * String编码base64
+     * @param src
+     * @return String
+     */
+    public static String stringToBase64(String src){
+        byte[] bytes = src.getBytes();
+        return Base64.encodeToString(bytes, Base64.NO_WRAP);
+    }
+
+    /**
+     * String解码base64
+     * @param base64Data
+     * @return String
+     */
+    public static String base64ToString(String base64Data) {
+        byte[] bytes = Base64.decode(base64Data, Base64.NO_WRAP);
+        return new String(bytes);
+    }
 }

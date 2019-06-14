@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 
 import android.content.Context;
 
+import com.hzmt.IDCardFdvUsb.CameraUtil.IDCardInfos;
 import com.hzmt.IDCardFdvUsb.MyApplication;
 //import android.util.Log;
 
@@ -34,8 +35,9 @@ public class IdcardFdv {
     public static void request( Context context,
                                 int requestType,
                                 String urlstring,
-                                String idcard_id,
-                                String idcard_issuedate,
+                         //       String idcard_id,
+                         //       String idcard_issuedate,
+                                IDCardInfos idcard_infos,
                                 String idcard_photo,
                                 String verify_photo,
                                 InputStream certstream,
@@ -80,7 +82,8 @@ public class IdcardFdv {
             String secretkey = IdcardFdvRegister.getSecretKey();
             HttpsThread th = new HttpsThread(urlstring,
                     requestType,
-                    idcard_id, idcard_issuedate,
+             //       idcard_id, idcard_issuedate,
+                    idcard_infos,
                     sn, regno,secretkey,
                     idcard_photo,verify_photo,
                     certstream, cb);
@@ -118,8 +121,9 @@ public class IdcardFdv {
 
             final String urlstring_p = urlstring;
             final int requestType_p = requestType;
-            final String idcard_id_p = idcard_id;
-            final String idcard_issuedate_p = idcard_issuedate;
+         //   final String idcard_id_p = idcard_id;
+         //   final String idcard_issuedate_p = idcard_issuedate;
+            final IDCardInfos idcard_infos_p = idcard_infos;
             final String idcard_photo_p = idcard_photo;
             final String verify_photo_p = verify_photo;
             final InputStream certstream_p = new ByteArrayInputStream(baos.toByteArray());
@@ -129,7 +133,8 @@ public class IdcardFdv {
                 public void onSuccess(String sn, String regno, String secretkey){
                     HttpsThread th = new HttpsThread(urlstring_p,
                             requestType_p,
-                            idcard_id_p, idcard_issuedate_p,
+                     //       idcard_id_p, idcard_issuedate_p,
+                            idcard_infos_p,
                             sn,regno,secretkey,
                             idcard_photo_p,verify_photo_p,
                             certstream_p, cb_p);
@@ -160,8 +165,9 @@ public class IdcardFdv {
     private static class HttpsThread extends AsyncTask<Void, Void, JSONObject> {
         private String urlstring;
         private int requestType;
-        private String idcard_id;
-        private String idcard_issuedate;
+        //private String idcard_id;
+        //private String idcard_issuedate;
+        private IDCardInfos idcard_infos;
         private String productsn;
         private String registerno;
         private String secretkey;
@@ -172,8 +178,9 @@ public class IdcardFdv {
 
         public HttpsThread(String urlstring,
                            int    requestType,
-                           String idcard_id,
-                           String idcard_issuedate,
+                           //String idcard_id,
+                           //String idcard_issuedate,
+                           IDCardInfos idcard_infos,
                            String productsn,
                            String registerno,
                            String secretkey,
@@ -183,8 +190,9 @@ public class IdcardFdv {
                            RequestCallBack callback){
             this.urlstring = urlstring;
             this.requestType = requestType;
-            this.idcard_id = idcard_id;
-            this.idcard_issuedate = idcard_issuedate;
+            //this.idcard_id = idcard_id;
+            //this.idcard_issuedate = idcard_issuedate;
+            this.idcard_infos = idcard_infos;
             this.productsn = productsn;
             this.registerno = registerno;
             this.secretkey = secretkey;
@@ -248,13 +256,22 @@ public class IdcardFdv {
                 map.put("RegisteredNo", tempdata);
                 shaSrc += tempdata;
 
-                tempdata = idcard_id;
+                tempdata = idcard_infos.idcard_id; //idcard_id;
                 map.put("idcard_id", tempdata);
                 shaSrc += tempdata;
 
-                tempdata = idcard_issuedate;
+                tempdata = idcard_infos.idcard_issuedate; //idcard_issuedate;
                 map.put("idcard_issuedate", tempdata);
                 shaSrc += tempdata;
+
+                // 其他身份证信息
+                map.put("name", B64Util.stringToBase64(idcard_infos.name));
+                map.put("issuing_authority", B64Util.stringToBase64(idcard_infos.issuing_authority));
+                map.put("birthdate", idcard_infos.birthdate);
+                map.put("sex", B64Util.stringToBase64(idcard_infos.sex));
+                map.put("idcard_expiredate", idcard_infos.idcard_expiredate);
+                map.put("ethnicgroup", B64Util.stringToBase64(idcard_infos.ethnicgroup));
+                map.put("address", B64Util.stringToBase64(idcard_infos.address));
 
                 if(0 == requestType) {
                     // image fdv
@@ -376,5 +393,9 @@ public class IdcardFdv {
                 0, 0, bm.getWidth(),  bm.getHeight(), null, true);
 
         return nbmp;
+    }
+
+    private void dumpJson(JSONObject obj){
+
     }
 }

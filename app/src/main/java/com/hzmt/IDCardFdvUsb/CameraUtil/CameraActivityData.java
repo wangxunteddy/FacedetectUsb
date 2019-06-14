@@ -1,6 +1,7 @@
 package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
+import android.os.Handler;
 
 /**
  * Created by xun on 2017/9/7.
@@ -61,4 +62,8 @@ public class CameraActivityData {
     public static boolean capture_subface_done = false;
     public static boolean idcardfdv_working = false;
     public static boolean resume_work = false;
+
+    // resume_work相关
+    public static Handler ResumeWorkHandler = null;
+    public static Runnable ResumeWorkRunnable = null;
 }

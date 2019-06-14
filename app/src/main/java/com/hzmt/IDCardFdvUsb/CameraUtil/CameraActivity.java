@@ -25,6 +25,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -35,6 +36,7 @@ import android.view.WindowManager;
 import android.content.Intent;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,6 +45,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -183,9 +186,7 @@ public class CameraActivity extends AppCompatActivity{
         mHelpImg = findViewById(R.id.helpimg);
 
         // 公安提醒画面
-        mAttLayout = (LinearLayout) findViewById(R.id.att_layout);
-        ViewGroup.LayoutParams attLP = mAttLayout.getLayoutParams();
-        attLP.width = (int)(CameraActivityData.CameraActivity_width * 0.4);
+        setAttLayout();
 
         // sound data
         new Thread() {
@@ -461,15 +462,6 @@ public class CameraActivity extends AppCompatActivity{
         });
     }
 
-    public void setAttLayOutVisibility(final int visibility){
-        mAttLayout.post(new Runnable(){
-            @Override
-            public void run() {
-                mAttLayout.setVisibility(visibility);
-            }
-        });
-    }
-
     @Override
     public void onBackPressed() {
         //mCameraMgt.closeCamera();
@@ -500,6 +492,61 @@ public class CameraActivity extends AppCompatActivity{
     // 点击预览画面事件
     public void onPreviewClick(View v){
         mInfoLayout.clearIDCardNoInputFocus();
+    }
+
+    // 公安提醒画面设置
+    public void setAttLayOutVisibility(final int visibility){
+        mAttLayout.post(new Runnable(){
+            @Override
+            public void run() {
+                mAttLayout.setVisibility(visibility);
+            }
+        });
+    }
+    private void setAttLayout(){
+        String police = "武汉市公安局";
+        try {
+            String attcfg = getExternalFilesDir(null).getAbsolutePath()
+                    + File.separator + "config.txt";
+            File cfgfile = new File(attcfg);
+            if(!cfgfile.exists()){
+                FileOutputStream outputStream = new FileOutputStream(cfgfile);
+                String initstr = "police:武汉市公安局";
+                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
+                bw.write(initstr);
+                bw.newLine();
+                bw.close();
+            }
+            else {
+                FileInputStream inputStream = new FileInputStream(cfgfile);
+                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+                String lineTxt = null;
+                while ((lineTxt = br.readLine()) != null) {
+                    String[] names = lineTxt.split(":");
+                    if(names[0].charAt(0) == '\uFEFF')  // unicode编码处理
+                        names[0] = names[0].substring(1);
+                    if (names.length >= 2) {
+                        if(names[0].equals("police"))
+                            police = names[1];
+                    }
+                }
+                br.close();
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            // e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mAttLayout = findViewById(R.id.att_layout);
+        ViewGroup.LayoutParams attLP = mAttLayout.getLayoutParams();
+        attLP.width = (int)(CameraActivityData.CameraActivity_width * 0.4);
+        EditText policeText = findViewById(R.id.police);
+        policeText.setText(police);
+        EditText policeAttText = findViewById(R.id.police_att);
+        String police_att = police + "提醒：";
+        policeAttText.setText(police_att);
     }
 
     // 加载声音数据
@@ -538,11 +585,42 @@ public class CameraActivity extends AppCompatActivity{
         return at;
     }
 
+    // 返回至无人状态(DetectFaceThread运行检查),不改变屏幕亮度
+    public static void startResumeWorkTimer(int sec){
+        if(null == CameraActivityData.ResumeWorkHandler){
+            CameraActivityData.ResumeWorkHandler = new Handler();
+        }
+        if(null == CameraActivityData.ResumeWorkRunnable) {
+            CameraActivityData.ResumeWorkRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    // 仅startBrightnessWork与startResumeWorkTimer时设置true,退回至无人状态
+                    CameraActivityData.resume_work = true;
+                }
+            };
+        }
+        CameraActivityData.ResumeWorkHandler.removeCallbacks(CameraActivityData.ResumeWorkRunnable);
+        CameraActivityData.ResumeWorkHandler.postDelayed(CameraActivityData.ResumeWorkRunnable,sec*1000);
+    }
+    public static void removeResumeWorkTimer(){
+        if(CameraActivityData.ResumeWorkHandler != null)
+            CameraActivityData.ResumeWorkHandler.removeCallbacks(CameraActivityData.ResumeWorkRunnable);
+    }
+
     // ===========================================================
     // screen brightness
     public static void startBrightnessWork(final Activity activity){
+        startBrightnessWorkMain(activity,10);
+    }
+    public static void startBrightnessWorkTime(final Activity activity, int sec){
+        startBrightnessWorkMain(activity,sec);
+    }
+    public static void startBrightnessWorkMain(final Activity activity, int sec){
         if(activity == null)
             return;
+
+        // 取消重复功能的timer
+        removeResumeWorkTimer();
 
         if(null == MyApplication.BrightnessHandler){
             MyApplication.BrightnessHandler = new Handler();
@@ -555,7 +633,8 @@ public class CameraActivity extends AppCompatActivity{
                     params.screenBrightness = 0.005f;
                     activity.getWindow().setAttributes(params);
 
-                    CameraActivityData.resume_work = true;  // 仅在此为true,退回至无人状态
+                    // 仅startBrightnessWork与startResumeWorkTimer时设置true,退回至无人状态
+                    CameraActivityData.resume_work = true;
                     //infoL.resetCameraImage();
                     //infoL.resetIdcardPhoto();
                     //infoL.setResultSimilarity("--%");
@@ -569,7 +648,7 @@ public class CameraActivity extends AppCompatActivity{
  //       activity.getWindow().setAttributes(params);
         Window w = activity.getWindow();
         w.setAttributes(params);
-        MyApplication.BrightnessHandler.postDelayed(MyApplication.BrightnessRunnable,10*1000);
+        MyApplication.BrightnessHandler.postDelayed(MyApplication.BrightnessRunnable,sec*1000);
     }
 
     public static void keepBright(Activity activity){

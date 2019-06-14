@@ -56,9 +56,14 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
 
         // 检查和重新初始化阅读器
         CameraActivityData.CheckIDCardReaderCnt++;
-        if(CameraActivityData.CheckIDCardReaderCnt > 3){
+        if(CameraActivityData.CheckIDCardReaderCnt >= 1){
             if (!activity.mIDCardReader.IsReaderConnected()) {
                 activity.mIDCardReader.CloseIDCardReader();
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e){
+                    e.printStackTrace();
+                }
                 publishProgress(REOPEN_IDCARDREADER);
             }
             CameraActivityData.CheckIDCardReaderCnt = 0;
@@ -78,10 +83,12 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
                              CameraActivityData.idcardfdv_RequestMode
                             );
 
+        pass_flag = true; //19.06.10修改为全部放行。
+
         if (face != null || pass_flag) {
             CameraActivity activity = mActivity.get();
             if(activity != null){
-                CameraActivity.keepBright(activity);
+                //CameraActivity.keepBright(activity);
                 // 检查读卡器状态
                 // 权限确认中或已经成功打开时再进行人脸认证
                 boolean no_check_flag = (MyApplication.DebugNoIDCardReader ||

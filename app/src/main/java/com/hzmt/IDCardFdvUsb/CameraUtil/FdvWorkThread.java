@@ -167,8 +167,8 @@ public class FdvWorkThread extends Thread {
                 idcard_photo = CameraActivityData.FdvIDCardInfos.idcard_photo;
             }
             else {
-                idcard_photo = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage, Bitmap.CompressFormat.PNG);
-                CameraActivityData.FdvIDCardInfos.idcard_photo = idcard_photo;
+                // 使用在IDCardReadThread生成的base64
+                idcard_photo = CameraActivityData.FdvIDCardInfos.idcard_photo;
             }
             //long b64time = System.currentTimeMillis();
             verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.NO_WRAP);
@@ -187,13 +187,55 @@ public class FdvWorkThread extends Thread {
         IdcardFdv.RequestCallBack reqcb = new IdcardFdv.RequestCallBack() {
             @Override
             public void onSuccess(JSONObject object) {
-                //Log.e("IdcardFdv cb", object.toString());
+                Log.i("IdcardFdv cb", object.toString());
                 boolean saveUpload = false;
                 double sim = 0.0f;
                 String serial_no = "";
                 try {
                     if (object.getInt("Err_no") == 0){
                         serial_no = object.getString("Serial_No");
+
+                        // 无证模式获取身份证信息
+                        if(CameraActivityData.idcardfdv_NoIDCardMode){
+                            if(object.has("name"))
+                                CameraActivityData.FdvIDCardInfos.name
+                                        = B64Util.base64ToString(object.getString("name"));
+                            if(object.has("issuing_authority"))
+                                CameraActivityData.FdvIDCardInfos.issuing_authority
+                                        = B64Util.base64ToString(object.getString("issuing_authority"));
+                            if(object.has("birthdate"))
+                                CameraActivityData.FdvIDCardInfos.birthdate
+                                        = object.getString("birthdate");
+                            if(object.has("sex"))
+                                CameraActivityData.FdvIDCardInfos.sex
+                                        = B64Util.base64ToString(object.getString("sex"));
+                            if(object.has("idcard_issuedate"))
+                                CameraActivityData.FdvIDCardInfos.idcard_issuedate
+                                        = object.getString("idcard_issuedate");
+                            if(object.has("idcard_expiredate"))
+                                CameraActivityData.FdvIDCardInfos.idcard_expiredate
+                                        = object.getString("idcard_expiredate");
+                            //if(object.has("idcard_id"))
+                            //    CameraActivityData.FdvIDCardInfos.idcard_id = object.getString("idcard_id");
+                            if(object.has("ethnicgroup"))
+                                CameraActivityData.FdvIDCardInfos.ethnicgroup
+                                        = B64Util.base64ToString(object.getString("ethnicgroup"));
+                            if(object.has("address"))
+                                CameraActivityData.FdvIDCardInfos.address
+                                        = B64Util.base64ToString(object.getString("address"));
+                            if(object.has("idcard_photo")){
+                                // 身份证照片
+                                CameraActivityData.FdvIDCardInfos.idcard_photo = object.getString("idcard_photo");
+                                String b64str = CameraActivityData.FdvIDCardInfos.idcard_photo;
+                                int sidx = b64str.indexOf("base64,") + 7;
+                                b64str = b64str.substring(sidx);
+                                CameraActivityData.PhotoImage = B64Util.base64ToBitmap(b64str);
+                                if(CameraActivityData.PhotoImage != null){
+                                    cbctx.mInfoLayout.setIdcardPhoto(CameraActivityData.PhotoImage);
+                                    cbctx.mInfoLayout.setMode(false);
+                                }
+                            }
+                        }
 
                         sim = object.getDouble("Similarity");
                         String retstr = String.format("%.1f%%",sim * 100);
@@ -288,8 +330,9 @@ public class FdvWorkThread extends Thread {
                 cbctx.mDebugLayout.addText("FDV-package Time:"+MyApplication.idcardfdvStepCnt2+"\n");
                 long fdvtime = System.currentTimeMillis() - MyApplication.idcardfdvTotalCnt;
                 cbctx.mDebugLayout.addText("FDV-TotalTime:"+fdvtime+"\n");
-                CameraActivity.startBrightnessWork(cbctx);
                 //===================
+
+                CameraActivity.startBrightnessWork(cbctx);
                 delayResumeFdvWork(cbctx,3*1000);
 
                 if(saveUpload){
@@ -350,8 +393,9 @@ public class FdvWorkThread extends Thread {
         IdcardFdv.request(activity,
                 reqType,
                 reqUrl,
-                CameraActivityData.FdvIDCardInfos.idcard_id,
-                CameraActivityData.FdvIDCardInfos.idcard_issuedate,
+//                CameraActivityData.FdvIDCardInfos.idcard_id,
+//                CameraActivityData.FdvIDCardInfos.idcard_issuedate,
+                CameraActivityData.FdvIDCardInfos,
                 idcard_photo,
                 verify_photo,
                 certstream,

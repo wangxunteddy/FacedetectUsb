@@ -106,8 +106,11 @@ public class IDCardReadThread extends Thread {
                             // 相同身份证
                             bIDCardNoChange = true;
                         } else {
+                            CameraActivityData.FdvIDCardInfos.clean();
+                            CameraActivityData.PhotoImageData = null;
+                            CameraActivityData.PhotoImage = null;
+                            // bmp数据
                             CameraActivityData.PhotoImageData = activity.mIDCardReader.GetPhotoDate();
-
                             // IDCard infos
                             CameraActivityData.FdvIDCardInfos.name
                                     = activity.mIDCardReader.GetPeopleName();
@@ -162,10 +165,7 @@ public class IDCardReadThread extends Thread {
             }
         }
 
-        if(CameraActivityData.resume_work)
-            return;
-
-        if(CameraActivityData.idcardfdv_NoIDCardMode){
+        if(CameraActivityData.idcardfdv_NoIDCardMode && !CameraActivityData.resume_work){
             // 无证模式直接返回
             CameraActivityData.FdvIDCardInfos.clean();
             CameraActivityData.PhotoImageData = null;
@@ -178,6 +178,7 @@ public class IDCardReadThread extends Thread {
         }
 
         // 身份证照片处理
+        boolean data_error = false;
         if(!bIDCardNoChange) {
             if(MyApplication.DebugNoIDCardReader){
                 //======================== test
@@ -190,8 +191,8 @@ public class IDCardReadThread extends Thread {
                 //========================
             }
             else {
-                CameraActivityData.PhotoImage = null;
                 if(CameraActivityData.idcardfdv_RequestMode){
+                    CameraActivityData.PhotoImage = null;
                     String b64str = CameraActivityData.FdvIDCardInfos.idcard_photo;
                     b64str = b64str.substring(b64str.indexOf("base64,") + 7);
                     CameraActivityData.PhotoImage = B64Util.base64ToBitmap(b64str);
@@ -200,16 +201,32 @@ public class IDCardReadThread extends Thread {
                     CameraActivityData.PhotoImage = activity.mIDCardReader.GetPhotoBitmap();
                 }
                 else if(activity.mIDCardReader.GetReaderType() == IDCardReader.READER_INVS) {
+                    CameraActivityData.PhotoImage = null;
                     byte[] idcard_photo_Data = CameraActivityData.PhotoImageData;
                     if (idcard_photo_Data != null)
                         CameraActivityData.PhotoImage = BitmapFactory
                                 .decodeByteArray(idcard_photo_Data, 0, idcard_photo_Data.length);
                 }
             }
-            Message msg = new Message();
-            msg.what = IDCARD_IMG_OK;
-            mHandler.sendMessage(msg);
 
+            if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
+                Message msg = new Message();
+                msg.what = IDCARD_IMG_OK;
+                mHandler.sendMessage(msg);
+            }
+
+            // base64
+            if(CameraActivityData.PhotoImage == null)
+                data_error = true;
+            else {
+                String photob64 = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage, Bitmap.CompressFormat.PNG);
+                if (CameraActivityData.FdvIDCardInfos.idcard_photo.equals(photob64))
+                    data_error = true;
+                CameraActivityData.FdvIDCardInfos.idcard_photo = photob64;
+            }
+
+
+            // feat
             CameraActivityData.PhotoImageFeat = "";
             if(1 == MyApplication.idcardfdv_requestType) {
                 long stime = System.currentTimeMillis();
@@ -225,29 +242,35 @@ public class IDCardReadThread extends Thread {
             }
         }
         else{
-            Message msg = new Message();
-            msg.what = IDCARD_IMG_OK;
-            mHandler.sendMessage(msg);
+            if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
+                Message msg = new Message();
+                msg.what = IDCARD_IMG_OK;
+                mHandler.sendMessage(msg);
+            }
         }
 
-        if((0 == MyApplication.idcardfdv_requestType &&
-                CameraActivityData.PhotoImage == null)
-        ||(1 == MyApplication.idcardfdv_requestType &&
-                CameraActivityData.PhotoImageFeat.equals(""))
+        // 错误检查
+        if(data_error ||
+            (0 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImage == null) ||
+            (1 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImageFeat.equals(""))
             ){
             CameraActivityData.PhotoImageData = null;
             CameraActivityData.PhotoImage = null;
             //MyApplication.PhotoImageFeat = "";
             CameraActivityData.FdvIDCardInfos.clean();
 
-            Message msg = new Message();
-            msg.what = IDCARD_ERR_READERR;
-            mHandler.sendMessage(msg);
+            if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
+                Message msg = new Message();
+                msg.what = IDCARD_ERR_READERR;
+                mHandler.sendMessage(msg);
+            }
         }
         else{
-            Message msg = new Message();
-            msg.what = IDCARD_ALL_OK;
-            mHandler.sendMessage(msg);
+            if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
+                Message msg = new Message();
+                msg.what = IDCARD_ALL_OK;
+                mHandler.sendMessage(msg);
+            }
         }
     }
 }

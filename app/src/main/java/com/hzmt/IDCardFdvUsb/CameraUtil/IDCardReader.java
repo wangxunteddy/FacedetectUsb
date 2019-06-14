@@ -230,10 +230,14 @@ public class IDCardReader extends UsbSam{
             return 0;
         }
         else if(mReaderType == READER_INVS) {
-            if (144 != this.ReadCardCmd(false))
-                return -1;
-            else
-                return 0;
+            try {
+                if (144 != this.ReadCardCmd(false))
+                    return -1;
+                else
+                    return 0;
+            } catch (Exception e){
+                e.printStackTrace();
+            }
         }
 
         return -1;

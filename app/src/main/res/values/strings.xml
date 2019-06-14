@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">人证验证</string>
+    <string name="ver_str">v1.0.10</string>
 </resources>
