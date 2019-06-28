@@ -679,7 +679,7 @@ public class CameraActivity extends AppCompatActivity{
             if(CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_NOT_PASS &&
                     CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_PASS )
             {
-                mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+                mFdvSrv.setRequestResult("","",CameraActivityData.RESULT_FAILED,0.0);
             }
         }
         CameraActivityData.idcardfdv_RequestMode = false;
@@ -750,7 +750,8 @@ public class CameraActivity extends AppCompatActivity{
         if(mHelpImg.getVisibility() == View.INVISIBLE){
             // 不在帮助画面时不执行
             if(mFdvSrv != null)
-                mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+                mFdvSrv.setRequestResult("","",
+                        CameraActivityData.RESULT_FAILED,0.0);
             return;
         }
 

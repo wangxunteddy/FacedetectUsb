@@ -26,6 +26,7 @@ import com.hzmt.IDCardFdvUsb.CameraUtil.IDCardInfos;
 import com.hzmt.IDCardFdvUsb.MyApplication;
 //import android.util.Log;
 
+//import com.fasterxml.uuid.Generators;
 
 /**
  * Created by xun on 2017/10/15.
@@ -150,7 +151,7 @@ public class IdcardFdv {
             };
             manager.setRegisterCallBack(regcallback);
 
-            manager.register(context, requestType,null);
+            manager.register(context, null);
 
             return;
         }
@@ -210,34 +211,18 @@ public class IdcardFdv {
                 Map<String, String> map = new HashMap<>();
                 String shaSrc ="";
                 String tempdata;
-                if(0 == requestType) {
-                    // image fdv
-                    tempdata = "10022546";
-                    map.put("appId", tempdata);
-                    shaSrc += tempdata;
 
-                    tempdata = "NGRkZGFhZDAwMDAwOThlZTky";
-                    map.put("apiKey", tempdata);
-                    shaSrc += tempdata;
+                tempdata = "10022546";
+                map.put("appId", tempdata);
+                shaSrc += tempdata;
 
-                    tempdata = this.secretkey;//"ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
-                    //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
-                    shaSrc += tempdata;
-                }
-                else{ // else if(1 == requestType) {
-                    // feat fdv
-                    tempdata = "10022546";
-                    map.put("appId", tempdata);
-                    shaSrc += tempdata;
+                tempdata = "NGRkZGFhZDAwMDAwOThlZTky";
+                map.put("apiKey", tempdata);
+                shaSrc += tempdata;
 
-                    tempdata = "NGRkZGFhZDAwMDAwOThlZTky";
-                    map.put("apiKey", tempdata);
-                    shaSrc += tempdata;
-
-                    tempdata = this.secretkey;//"ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
-                    //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
-                    shaSrc += tempdata;
-                }
+                tempdata = this.secretkey;//"ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                //map.put("secretKey", "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4");
+                shaSrc += tempdata;
 
                 tempdata = SystemUtil.getMacAddress();
                 map.put("MacId", tempdata);

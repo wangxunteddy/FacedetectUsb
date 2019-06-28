@@ -218,7 +218,8 @@ public class IDCardReadThread extends Thread {
             // base64
             if(CameraActivityData.PhotoImage == null)
                 data_error = true;
-            else {
+            else if(!CameraActivityData.idcardfdv_RequestMode){
+                // 非请求模式时转身份证照片base64
                 String photob64 = "data:image/png;base64," + B64Util.bitmapToBase64(CameraActivityData.PhotoImage, Bitmap.CompressFormat.PNG);
                 if (CameraActivityData.FdvIDCardInfos.idcard_photo.equals(photob64))
                     data_error = true;
@@ -250,13 +251,19 @@ public class IDCardReadThread extends Thread {
         }
 
         // 错误检查
-        if(data_error ||
-            (0 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImage == null) ||
-            (1 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImageFeat.equals(""))
-            ){
+        //boolean chkflag = (data_error ||
+        //        (0 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImage == null) ||
+        //        (1 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImageFeat.equals(""))
+        //        );
+        boolean chkflag = (data_error ||
+                CameraActivityData.PhotoImage == null ||
+               (1 == MyApplication.idcardfdv_requestType && CameraActivityData.PhotoImageFeat.equals(""))
+                );
+
+        if(chkflag){
             CameraActivityData.PhotoImageData = null;
             CameraActivityData.PhotoImage = null;
-            //MyApplication.PhotoImageFeat = "";
+            CameraActivityData.PhotoImageFeat = "";
             CameraActivityData.FdvIDCardInfos.clean();
 
             if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新

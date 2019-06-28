@@ -42,7 +42,7 @@ public class IDCardReadHandler extends Handler {
                 break;
             case IDCardReadThread.IDCARD_READY:
                 if (activity != null)
-                    CameraActivity.startResumeWorkTimer(5); // CameraActivity.startBrightnessWork(activity);
+                    CameraActivity.startResumeWorkTimer(8); // CameraActivity.startBrightnessWork(activity);
                 break;
             case IDCardReadThread.IDCARD_CHECK_OK:
                 if(CameraActivityData.resume_work)

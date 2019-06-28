@@ -99,7 +99,8 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
 
         // face detect
         Rect face = new Rect();
-        String faceb64 = "";
+        String faceb64 = null;
+        boolean detect = false;
         if(MyApplication.idcardfdv_subCameraEnable) {
             faceb64 = MyApplication.AiFdrScIns.livecheck(
                     mBaseBm,
@@ -107,24 +108,43 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
                     face,
                     95,
                     0);
+            if(faceb64 == null || faceb64.equals(""))
+                detect = false;
+            else
+                detect = true;
+
+            // 越界忽略
+            if( face.left < 0 || face.top < 0 ||
+                    face.right >= mBaseBm.getWidth() || face.bottom >= mBaseBm.getHeight())
+            {
+                detect = false;
+            }
         }
         else{
-            boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
-            if(detect)
-                faceb64 = MyApplication.AiFdrScIns.ai_fdr_get_face(face,95);
+            detect = MyApplication.AiFdrScIns.dectect_camera_face(mBaseBm,face);
+            // 越界忽略
+            if( face.left < 0 || face.top < 0 ||
+                    face.right >= mBaseBm.getWidth() || face.bottom >= mBaseBm.getHeight())
+            {
+                detect = false;
+            }
+            // 需提前计算base64的情况
+            if((CameraActivityData.idcardfdv_RequestMode ||
+                    CameraActivityData.idcardfdv_NoIDCardMode ||
+                    0 == MyApplication.idcardfdv_requestType) && detect){
+                faceb64 = MyApplication.AiFdrScIns.ai_fdr_get_face(face, 95);
+                if(faceb64 == null || faceb64.equals(""))
+                    detect = false;
+            }
         }
 
-        // 越界忽略
-        if( face.left < 0 || face.top < 0 ||
-                face.right >= mBaseBm.getWidth() || face.bottom >= mBaseBm.getHeight())
-        {
-            faceb64 = null;
+        // 请求模式要求base64小于30k
+        if(CameraActivityData.idcardfdv_RequestMode &&
+                faceb64!=null && faceb64.length() > 30 * 1024){
+            detect = false;
         }
 
-        //long nt = System.currentTimeMillis();
-        //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),mBaseBm,nt+"_00");
-        //CameraActivity.saveUploadBitmapJPEG(mActivity.get(),CameraActivityData.CameraImageSub,nt+"_01");
-        if(faceb64 != null && !faceb64.equals("") ){
+        if(detect){
             //===================
             // test code
             long detectDone = System.currentTimeMillis();
@@ -146,11 +166,12 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
 
             //CameraActivityData.CameraImageData = rawImage;
             CameraActivityData.CameraImage = mBaseBm;
-            CameraActivityData.CameraImageB64 = faceb64;
+            CameraActivityData.CameraFaceImage = mFaceBm;
+            CameraActivityData.CameraFaceB64 = faceb64;
             CameraActivityData.UploadCameraImage = mBaseBm;//mFullBm;
 
             CameraActivityData.CameraImageFeat = "";
-            if(1 == MyApplication.idcardfdv_requestType) {
+            if(1 == MyApplication.idcardfdv_requestType && !CameraActivityData.idcardfdv_NoIDCardMode) {
                 // image feat
                 synchronized(CameraActivityData.AiFdrSclock) {
                     long stime = System.currentTimeMillis();
@@ -174,8 +195,9 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             activity.mDebugLayout.addText("FDV-cameraImg Time:"+cameraImgTime+"\n");
             //===================
 
-            if((1 == MyApplication.idcardfdv_requestType)
-                    && CameraActivityData.CameraImageFeat.equals(""))
+            if(1 == MyApplication.idcardfdv_requestType &&
+                    !CameraActivityData.idcardfdv_NoIDCardMode &&
+                    CameraActivityData.CameraImageFeat.equals(""))
                 return null;
             else
                 return face;

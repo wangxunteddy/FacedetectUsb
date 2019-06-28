@@ -17,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.security.KeyStore;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -28,11 +29,17 @@ import javax.net.ssl.TrustManagerFactory;
 public class FdvRestfulService extends Service {
 
     private AsyncHttpServer server = new AsyncHttpServer();
+    private AsyncHttpServer server2 = new AsyncHttpServer();
+    final private String SRV2_VER = "Ver10";
 
     private IDCardInfos mInfos;
     private String mResult = "";
 
     private int mRequestResult = CameraActivityData.RESULT_NONE;
+    private String mReqRet_faceImg = "";
+    private String mReqRet_pic = "";
+    private String mReqRet_checkFlag = "";
+    private String mReqRet_compareValue = "";
 
     public IBinder onBind(Intent intent)
     {
@@ -181,9 +188,84 @@ public class FdvRestfulService extends Service {
                 response.send(retStr);
             }
         });
-        */
+        //*/
+
 
         server.listen(8010);
+
+        server2.post("/"+SRV2_VER+"/Face_Instruct",new HttpServerRequestCallback() {
+            @Override
+            public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
+                Map<String, String> info_map = new HashMap<>();
+                IDCardInfos info = new IDCardInfos();
+
+                String noneinfo = "";
+                try {
+                    JSONObject requestJSON = (JSONObject)request.getBody().get();
+
+                    if(requestJSON.has("instructType")) {
+                    }
+                    else
+                        noneinfo = "instructType";
+
+                    if(requestJSON.has("pic")) {
+                        String b64str = requestJSON.getString("pic");
+                        if(!b64str.contains("data:image") && !b64str.contains("base64,")){
+                            b64str = "data:image/png;base64,"+b64str;
+                        }
+                        info.idcard_photo = b64str;
+                    }
+                    else
+                        noneinfo = "pic";
+
+                    info.idcard_id = "000000181801010002";
+                } catch (JSONException e){
+                    e.printStackTrace();
+                }
+
+                String fdv_result = "";
+                if(!noneinfo.equals("")){
+                    info_map.put("err_code", "400");
+                    info_map.put("err_msg", "错误请求!缺少字段"+noneinfo);
+                }
+                else{
+                    mRequestResult = CameraActivityData.RESULT_NONE;
+                    Intent intent = new Intent("com.hzmt.IDCardFdvUsb.FDV_REQUEST");
+                    //intent.setComponent(); //Android 8.0 need it
+                    intent.putExtra("person_data",info);
+                    sendBroadcast(intent);
+
+                    // 等待结果
+                    while(mRequestResult == CameraActivityData.RESULT_NONE){
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e){
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if(mRequestResult == CameraActivityData.RESULT_PASS ||
+                            mRequestResult == CameraActivityData.RESULT_NOT_PASS) {
+                        info_map.put("faceImg", mReqRet_faceImg);
+                        info_map.put("pic", mReqRet_pic);
+                        info_map.put("checkFlag", mReqRet_checkFlag);
+                        info_map.put("mReqRet_compareValue", mReqRet_compareValue);
+                    }
+                    else {
+                        info_map.put("err_code", "500");
+                        info_map.put("err_msg", "验证未成功执行！");
+                    }
+                }
+
+                JSONObject resultJSON = new JSONObject(info_map);
+                String retStr = resultJSON.toString().replace("\\/", "/"); // 去转义字符
+                retStr = retStr.replace("\\n", ""); // 去换行
+                Headers headers = response.getHeaders();
+                headers.set("Content-Type","application/json;charset=utf-8");
+                response.send(retStr);
+            }
+        });
+        server2.listen(55532);
 
         super.onCreate();
     }
@@ -196,6 +278,9 @@ public class FdvRestfulService extends Service {
     @Override
     public void onDestroy() {
         if (server != null) {
+            server.stop();
+        }
+        if (server2 != null) {
             server.stop();
         }
 
@@ -218,8 +303,21 @@ public class FdvRestfulService extends Service {
             mResult = "failure";
     }
 
-    public void setRequestResult(int ret) {
-        mRequestResult = ret;
+    public void setRequestResult(String camera_photo,String idcard_photo,
+                                 int result, double sim) {
+        mRequestResult = result;
+        if(mRequestResult == CameraActivityData.RESULT_PASS)
+            mReqRet_checkFlag = "1";
+        else if(mRequestResult == CameraActivityData.RESULT_NOT_PASS)
+            mReqRet_checkFlag = "0";
+
+        mReqRet_faceImg = camera_photo;
+        if(!mReqRet_faceImg.contains("data:image") && !mReqRet_faceImg.contains(";base64,"))
+            mReqRet_faceImg = "data:image/jpeg;base64," + mReqRet_faceImg;
+        mReqRet_pic = idcard_photo;
+
+        DecimalFormat decimalFormat=new DecimalFormat(".00");
+        mReqRet_compareValue = decimalFormat.format(sim);
     }
 
     public class LocalBinder extends Binder {

@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         mBtnLogin = (Button) findViewById(R.id.btn_login);
         mBtnRegister = (Button) findViewById(R.id.btn_register);
         mEditUrl = (EditText)findViewById(R.id.editUrl);
-        mEditUrl.setText(MyApplication.FaceDetectUrl);
+        mEditUrl.setText(MyApplication.idcardfdvUrl);
 
         mBtnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         mBtnSetUrl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MyApplication.FaceDetectUrl = mEditUrl.getText().toString();
+                MyApplication.idcardfdvUrl = mEditUrl.getText().toString();
             }
         });
     }

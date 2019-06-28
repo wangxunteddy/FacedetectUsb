@@ -70,6 +70,10 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
         }
 
         if (detect) {
+            //long stime = System.currentTimeMillis();
+            //MyApplication.AiFdrScIns.get_camera_feat2(face);
+            //long feattime = System.currentTimeMillis() - stime;
+            //Log.i("full FeatTime",""+feattime);
             return face;
         } else {
             return null;
@@ -86,6 +90,7 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
         pass_flag = true; //19.06.10修改为全部放行。
 
         if (face != null || pass_flag) {
+        //if(false){
             CameraActivity activity = mActivity.get();
             if(activity != null){
                 //CameraActivity.keepBright(activity);

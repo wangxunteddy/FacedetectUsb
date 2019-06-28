@@ -24,7 +24,7 @@ public class CameraActivityData {
     public static int DeviceOrientation = 90; // 0: portrait   90: landscape
     //  = activity.getWindowManager().getDefaultDisplay().getRotation();
 
-    public static double SimThreshold = 0.77;
+    public static double SimThreshold = 0.79;
 
     //public static final byte[] fdvlock = new byte[0];  // 特别的instance变量，充当同步锁
     public static final byte[] AiFdrSclock = new byte[0];  // 特别的instance变量，充当同步锁
@@ -48,7 +48,8 @@ public class CameraActivityData {
     public static Bitmap CameraImage = null;
     public static Bitmap CameraImageSub = null;
     public static String CameraImageFeat;
-    public static String CameraImageB64 = null;
+    public static String CameraFaceB64 = null;
+    public static Bitmap CameraFaceImage = null;
     public static Bitmap UploadCameraImage = null;
     public static Bitmap UploadCameraImageSub = null;
     public static IDCardInfos FdvIDCardInfos;

@@ -10,6 +10,7 @@ import android.widget.Toast;
 import com.hzmt.IDCardFdvUsb.MyApplication;
 import com.hzmt.IDCardFdvUsb.util.B64Util;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdv;
+import com.hzmt.IDCardFdvUsb.util.IdcardFdvComplete;
 import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 
 import org.json.JSONException;
@@ -160,7 +161,7 @@ public class FdvWorkThread extends Thread {
 
         String idcard_photo = null;
         String verify_photo = "";
-        if(0 == MyApplication.idcardfdv_requestType) {
+        if(0 == MyApplication.idcardfdv_requestType || CameraActivityData.idcardfdv_NoIDCardMode) {
             if(CameraActivityData.idcardfdv_NoIDCardMode)
                 idcard_photo = "None";
             else if(CameraActivityData.idcardfdv_RequestMode){
@@ -171,7 +172,7 @@ public class FdvWorkThread extends Thread {
                 idcard_photo = CameraActivityData.FdvIDCardInfos.idcard_photo;
             }
             //long b64time = System.currentTimeMillis();
-            verify_photo = CameraActivityData.CameraImageB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.NO_WRAP);
+            verify_photo = CameraActivityData.CameraFaceB64;//"data:image/jpeg;base64," + Base64.encodeToString(CameraActivityData.CameraImageData, Base64.NO_WRAP);
             //b64time = System.currentTimeMillis() - b64time;
             //activity.mDebugLayout.addText("b64time:"+b64time+"\n");
         }
@@ -179,8 +180,8 @@ public class FdvWorkThread extends Thread {
             idcard_photo = CameraActivityData.PhotoImageFeat;
             verify_photo = CameraActivityData.CameraImageFeat;
 
-            CameraActivityData.FdvIDCardInfos.idcard_photo = "data:image/png;base64," +
-                    B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
+            //CameraActivityData.FdvIDCardInfos.idcard_photo = "data:image/png;base64," +
+            //        B64Util.bitmapToBase64(CameraActivityData.PhotoImage,Bitmap.CompressFormat.PNG);
         }
 
         final CameraActivity cbctx = activity;
@@ -241,7 +242,8 @@ public class FdvWorkThread extends Thread {
                         String retstr = String.format("%.1f%%",sim * 100);
                         cbctx.mInfoLayout.setResultSimilarity(retstr);
 
-                        if(sim > CameraActivityData.SimThreshold) {
+                        boolean simPass = sim > CameraActivityData.SimThreshold;
+                        if(simPass) {
                             cbctx.mInfoLayout.setResultIconPass();
                             CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_PASS;
 
@@ -260,16 +262,6 @@ public class FdvWorkThread extends Thread {
                                     }
                                 }
                             }.start();
-
-                            if(cbctx.mFdvSrv != null){
-                                // 设置最后识别信息
-                                cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
-                                cbctx.mFdvSrv.setResult(true);
-
-                                // 请求模式设置结果
-                                if(CameraActivityData.idcardfdv_RequestMode)
-                                    cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_PASS);
-                            }
                         }
                         else{
                             cbctx.mInfoLayout.setResultIconNotPass();
@@ -289,15 +281,24 @@ public class FdvWorkThread extends Thread {
                                     }
                                 }
                             }.start();
+                        }
 
-                            if(cbctx.mFdvSrv != null){
-                                // 设置最后识别信息
-                                cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
-                                cbctx.mFdvSrv.setResult(false);
+                        // feat fdv模式补发人脸图
+                        if(1 == MyApplication.idcardfdv_requestType && !CameraActivityData.idcardfdv_NoIDCardMode)
+                            sendFdvCompleteImages(serial_no);
 
+                        if(cbctx.mFdvSrv != null){
+                            if(CameraActivityData.idcardfdv_RequestMode) {
                                 // 请求模式设置结果
-                                if(CameraActivityData.idcardfdv_RequestMode)
-                                    cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_NOT_PASS);
+                                int _result = simPass ? CameraActivityData.RESULT_PASS : CameraActivityData.RESULT_NOT_PASS;
+                                cbctx.mFdvSrv.setRequestResult(CameraActivityData.CameraFaceB64,
+                                        CameraActivityData.FdvIDCardInfos.idcard_photo,
+                                        _result, sim * 100);
+                            }
+                            else{
+                                // 否则设置最后识别信息
+                                cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
+                                cbctx.mFdvSrv.setResult(simPass);
                             }
                         }
                         saveUpload = true;
@@ -305,7 +306,8 @@ public class FdvWorkThread extends Thread {
                     else{
                         CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
                         if(CameraActivityData.idcardfdv_RequestMode && cbctx.mFdvSrv != null)
-                            cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+                            cbctx.mFdvSrv.setRequestResult("","",
+                                    CameraActivityData.RESULT_FAILED,0.0);
 
                         String err_msg = object.getString("Err_msg");
                         ShowToastUtils.showToast(cbctx, err_msg, Toast.LENGTH_SHORT);
@@ -313,7 +315,8 @@ public class FdvWorkThread extends Thread {
                 } catch (JSONException e) {
                     CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
                     if(CameraActivityData.idcardfdv_RequestMode && cbctx.mFdvSrv != null)
-                        cbctx.mFdvSrv.setRequestResult(CameraActivityData.RESULT_FAILED);
+                        cbctx.mFdvSrv.setRequestResult("","",
+                                CameraActivityData.RESULT_FAILED,0.0);
                     e.printStackTrace();
                 }
 
@@ -390,15 +393,50 @@ public class FdvWorkThread extends Thread {
         InputStream certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
         int reqType = MyApplication.idcardfdv_requestType;
         String reqUrl = MyApplication.idcardfdvUrl;
+        if(CameraActivityData.idcardfdv_NoIDCardMode) {
+            reqType = 0;
+            reqUrl = MyApplication.idcardfdvUrl_img;
+        }
         IdcardFdv.request(activity,
                 reqType,
                 reqUrl,
-//                CameraActivityData.FdvIDCardInfos.idcard_id,
-//                CameraActivityData.FdvIDCardInfos.idcard_issuedate,
                 CameraActivityData.FdvIDCardInfos,
                 idcard_photo,
                 verify_photo,
                 certstream,
                 reqcb);
+    }
+
+    private void sendFdvCompleteImages(final String serial_no){
+
+        new Thread(){
+            @Override
+            public void run(){
+                // feat fdv时可能未生成base64
+                boolean cflag = CameraActivityData.CameraFaceImage != null &&
+                        (CameraActivityData.CameraFaceB64 == null ||
+                                CameraActivityData.CameraFaceB64.equals(""));
+                if(cflag){
+                    CameraActivityData.CameraFaceB64 = "data:image/png;base64," +
+                            B64Util.bitmapToBase64(CameraActivityData.CameraFaceImage, Bitmap.CompressFormat.PNG);
+                }
+
+                String idcard_photo = null;
+                String verify_photo = null;
+
+                idcard_photo = CameraActivityData.FdvIDCardInfos.idcard_photo;
+                verify_photo = CameraActivityData.CameraFaceB64;
+
+                InputStream certstream = new ByteArrayInputStream(MyApplication.certstream_baos.toByteArray());
+                String reqUrl = MyApplication.fdvCompleteUrl;
+                IdcardFdvComplete.request(reqUrl,
+                        serial_no,
+                        CameraActivityData.FdvIDCardInfos,
+                        idcard_photo,
+                        verify_photo,
+                        certstream,
+                        null);
+            }
+        }.start();
     }
 }
