@@ -25,7 +25,7 @@ public class IDCardReadHandler extends Handler {
                     String errMsg = "身份证读卡失败!";
                     ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                     // 屏幕亮度及信息清理Timer
-                    CameraActivity.startBrightnessWork(activity);
+                    WorkUtils.startBrightnessWork(activity);
                 }
 
                 CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_ERR_READERR;
@@ -42,7 +42,7 @@ public class IDCardReadHandler extends Handler {
                 break;
             case IDCardReadThread.IDCARD_READY:
                 if (activity != null)
-                    CameraActivity.startResumeWorkTimer(8); // CameraActivity.startBrightnessWork(activity);
+                    WorkUtils.startResumeWorkTimer(8); // CameraActivity.startBrightnessWork(activity);
                 break;
             case IDCardReadThread.IDCARD_CHECK_OK:
                 if(CameraActivityData.resume_work)
@@ -52,7 +52,7 @@ public class IDCardReadHandler extends Handler {
                     activity.setHelpImgVisibility(View.INVISIBLE);
                     activity.setAttLayOutVisibility(View.VISIBLE);
                     activity.mInfoLayout.setMode(CameraActivityData.idcardfdv_NoIDCardMode);
-                    CameraActivity.startBrightnessWork(activity);
+                    WorkUtils.startBrightnessWork(activity);
                     // 开启捕捉人脸
                     CameraActivityData.capture_face_enable = true;
                 }

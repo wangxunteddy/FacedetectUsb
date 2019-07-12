@@ -88,7 +88,7 @@ public class IdcardFdvComplete {
                     tempdata = SystemUtil.shaEncrypt(shaSrc);
                     map.put("checksum", tempdata);
                     object = new JSONObject(map);
-                    object.put("verify_photos", jsonArray);
+                    object.put("verify_faces", jsonArray);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -99,7 +99,9 @@ public class IdcardFdvComplete {
                 else
                     resultJSON = HttpUtil.JsonObjectRequest(object,urlstring);
 
-                Log.i("IdcardFdvComplete", resultJSON.toString());
+                //if(null != resultJSON)
+                //    Log.i("IdcardFdvComplete", resultJSON.toString());
+
                 if(null != callback){
                     if(null != resultJSON)
                         callback.onSuccess(resultJSON);

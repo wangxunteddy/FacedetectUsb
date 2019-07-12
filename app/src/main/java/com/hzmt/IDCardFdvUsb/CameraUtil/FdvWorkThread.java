@@ -1,6 +1,7 @@
 package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Base64;
@@ -86,7 +87,9 @@ public class FdvWorkThread extends Thread {
                 if(CameraActivityData.resume_work)
                     break;
 
-                if (CameraActivityData.idcardfdv_idcardState == IDCardReadThread.IDCARD_ERR_READERR) {
+                if (CameraActivityData.idcardfdv_idcardState == IDCardReadThread.IDCARD_ERR_READERR &&
+                        !CameraActivityData.idcardfdv_NoIDCardMode &&
+                        !CameraActivityData.idcardfdv_RequestMode) {
                     Message msg = new Message();
                     msg.what = FDVWORK_IDCARDERR;
                     mHandler.sendMessage(msg);
@@ -100,7 +103,7 @@ public class FdvWorkThread extends Thread {
                 //===================
                 // test code
                 MyApplication.idcardfdvStepCnt = System.currentTimeMillis();
-                long fdvtime = MyApplication.idcardfdvStepCnt - MyApplication.idcardfdvTotalCnt;
+                long fdvtime = System.currentTimeMillis() - MyApplication.idcardfdvTotalCnt;
                 activity.mDebugLayout.addText("FDV-img done:"+fdvtime+"\n");
                 //===================
 
@@ -330,12 +333,13 @@ public class FdvWorkThread extends Thread {
 
                 //===================
                 // test code
-                cbctx.mDebugLayout.addText("FDV-package Time:"+MyApplication.idcardfdvStepCnt2+"\n");
+                //cbctx.mDebugLayout.addText("FDV-package Time:"+MyApplication.idcardfdvStepCnt2+"\n");
+                cbctx.mDebugLayout.addText("network Time:"+(System.currentTimeMillis() - MyApplication.idcardfdvStepCnt)+"\n");
                 long fdvtime = System.currentTimeMillis() - MyApplication.idcardfdvTotalCnt;
                 cbctx.mDebugLayout.addText("FDV-TotalTime:"+fdvtime+"\n");
                 //===================
 
-                CameraActivity.startBrightnessWork(cbctx);
+                WorkUtils.startBrightnessWork(cbctx);
                 delayResumeFdvWork(cbctx,3*1000);
 
                 if(saveUpload){
@@ -347,15 +351,15 @@ public class FdvWorkThread extends Thread {
                     if(!MyApplication.DebugNoIDCardReader) {
                         // 身份证照片
                         if(!CameraActivityData.idcardfdv_NoIDCardMode)
-                            CameraActivity.saveUploadBitmap(cbctx, CameraActivityData.PhotoImage,
+                            WorkUtils.saveUploadBitmap(cbctx, CameraActivityData.PhotoImage,
                                                 prename + "_0.png", Bitmap.CompressFormat.PNG);
 
                         // 主摄像头照片
-                        CameraActivity.saveUploadBitmap(cbctx,CameraActivityData.UploadCameraImage,
+                        WorkUtils.saveUploadBitmap(cbctx,CameraActivityData.UploadCameraImage,
                                             prename + "_1.jpeg", Bitmap.CompressFormat.JPEG);
                         // 红外照片
                         if(MyApplication.idcardfdv_subCameraEnable) {
-                            CameraActivity.saveUploadBitmap(cbctx, CameraActivityData.UploadCameraImageSub,
+                            WorkUtils.saveUploadBitmap(cbctx, CameraActivityData.UploadCameraImageSub,
                                                 prename + "_2.jpeg",Bitmap.CompressFormat.JPEG);
                         }
 
@@ -384,7 +388,7 @@ public class FdvWorkThread extends Thread {
                 }
 
                 ShowToastUtils.showToast(cbctx, "网络请求错误！", Toast.LENGTH_SHORT);
-                CameraActivity.startBrightnessWork(cbctx);
+                WorkUtils.startBrightnessWork(cbctx);
                 delayResumeFdvWork(cbctx,3*1000);
             }
         };
@@ -413,12 +417,17 @@ public class FdvWorkThread extends Thread {
             @Override
             public void run(){
                 // feat fdv时可能未生成base64
-                boolean cflag = CameraActivityData.CameraFaceImage != null &&
+                boolean cflag = CameraActivityData.CameraImage != null &&
                         (CameraActivityData.CameraFaceB64 == null ||
                                 CameraActivityData.CameraFaceB64.equals(""));
                 if(cflag){
-                    CameraActivityData.CameraFaceB64 = "data:image/png;base64," +
-                            B64Util.bitmapToBase64(CameraActivityData.CameraFaceImage, Bitmap.CompressFormat.PNG);
+                    //long stime = System.currentTimeMillis();
+                    synchronized(CameraActivityData.AiFdrSclock) {
+                        CameraActivityData.CameraFaceB64 = MyApplication.AiFdrScIns.
+                                ai_fdr_get_face(CameraActivityData.CameraFaceRect, 95, true);
+                    }
+                    //long dttime = System.currentTimeMillis() - stime;
+                    //Log.i("complete b64",""+dttime);
                 }
 
                 String idcard_photo = null;

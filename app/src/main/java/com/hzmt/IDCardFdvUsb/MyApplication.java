@@ -17,13 +17,13 @@ import java.io.ByteArrayOutputStream;
 
 public class MyApplication extends Application {
     public static RequestQueue requestQueue;
-//    public static String FaceDetectUrl = "http://192.168.1.12:8070/AppFaceDetect";
 
+    public static String myIPAddress = "";
     public static AiFdrScPkg AiFdrScIns = null;
     public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
+    //public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/idcardfdv";
-    //public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
     public static String idcardfdvUrl_img = "https://118.31.14.72:8004/idcardfdv";
     public static String fdvCompleteUrl = "https://118.31.14.72:8004/idfdv_complete";
     public static ByteArrayOutputStream certstream_baos = null;

@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
@@ -56,7 +57,6 @@ public class FdvRestfulService extends Service {
     @Override
     public void onCreate() {
         //SSLContext sslContext = getSLLContext();
-
         mInfos = new IDCardInfos();
         server.get("/retrieveidfvinfo",new HttpServerRequestCallback() {
             @Override
@@ -197,13 +197,18 @@ public class FdvRestfulService extends Service {
             @Override
             public void onRequest(AsyncHttpServerRequest request, AsyncHttpServerResponse response) {
                 Map<String, String> info_map = new HashMap<>();
+
                 IDCardInfos info = new IDCardInfos();
 
                 String noneinfo = "";
+                boolean flag10E = false;
                 try {
                     JSONObject requestJSON = (JSONObject)request.getBody().get();
 
                     if(requestJSON.has("instructType")) {
+                        String instructType = requestJSON.getString("instructType");
+                        if(instructType.equals("10E"))
+                            flag10E = true;
                     }
                     else
                         noneinfo = "instructType";
@@ -218,7 +223,97 @@ public class FdvRestfulService extends Service {
                     else
                         noneinfo = "pic";
 
-                    info.idcard_id = "000000181801010002";
+                    // 10E护照阅读器信息
+                    if(requestJSON.has("cardType"))
+                        info.ReadedCardType = requestJSON.getString("cardType");
+                    if(requestJSON.has("oriimage"))
+                        info.oriimage = requestJSON.getString("oriimage");
+                    if(requestJSON.has("cardName"))
+                        info.name = requestJSON.getString("cardName");//二代证通用信息
+                    if(requestJSON.has("RFIDMRZ"))
+                        info.RFIDMRZ = requestJSON.getString("RFIDMRZ");
+                    if(requestJSON.has("LocalName"))
+                        info.LocalName = requestJSON.getString("LocalName");
+                    if(requestJSON.has("OCRMRZ"))
+                        info.OCRMRZ = requestJSON.getString("OCRMRZ");
+                    if(requestJSON.has("EngName"))
+                        info.EngName = requestJSON.getString("EngName");
+                    if(requestJSON.has("POBPinyin"))
+                        info.POBPinyin = requestJSON.getString("POBPinyin");
+                    if(requestJSON.has("Gender"))
+                        info.sex = requestJSON.getString("Gender");//二代证通用信息
+                    if(requestJSON.has("IssuePlacePinyin"))
+                        info.IssuePlacePinyin = requestJSON.getString("IssuePlacePinyin");
+                    if(requestJSON.has("DOB"))
+                        info.DOB = requestJSON.getString("DOB");
+                    if(requestJSON.has("IDCardNo"))
+                        info.IDCardNo = requestJSON.getString("IDCardNo");
+                    if(requestJSON.has("Birthday"))
+                        info.birthdate = requestJSON.getString("Birthday");//二代证通用信息
+                    if(requestJSON.has("Minzu"))
+                        info.ethnicgroup = requestJSON.getString("Minzu");//二代证通用信息
+                    if(requestJSON.has("PassportMRZ"))
+                        info.PassportMRZ = requestJSON.getString("PassportMRZ");
+                    if(requestJSON.has("Address"))
+                        info.address = requestJSON.getString("Address");//二代证通用信息
+                    if(requestJSON.has("ValidDate"))
+                        info.ValidDate = requestJSON.getString("ValidDate");
+                    if(requestJSON.has("IDNo")) {
+                        info.idcard_id = requestJSON.getString("IDNo");//二代证通用信息
+                        if(info.idcard_id.equals(""))
+                            info.idcard_id = "000000181801010002";
+                    }
+                    if(requestJSON.has("IssueState"))
+                        info.IssueState = requestJSON.getString("IssueState");
+                    if(requestJSON.has("SelfDefineInfo"))
+                        info.SelfDefineInfo = requestJSON.getString("SelfDefineInfo");
+                    if(requestJSON.has("EngSurname"))
+                        info.EngSurname = requestJSON.getString("EngSurname");
+                    if(requestJSON.has("POB"))
+                        info.POB = requestJSON.getString("POB");
+                    if(requestJSON.has("EngFirstname"))
+                        info.EngFirstname = requestJSON.getString("EngFirstname");
+                    if(requestJSON.has("CardNoMRZ"))
+                        info.CardNoMRZ = requestJSON.getString("CardNoMRZ");
+                    if(requestJSON.has("MRZ1"))
+                        info.MRZ1 = requestJSON.getString("MRZ1");
+                    if(requestJSON.has("CardNo"))
+                        info.CardNo = requestJSON.getString("CardNo");
+                    if(requestJSON.has("MRZ2"))
+                        info.MRZ2 = requestJSON.getString("MRZ2");
+                    if(requestJSON.has("CardType"))
+                        info.CardType = requestJSON.getString("CardType");
+                    if(requestJSON.has("Nationality"))
+                        info.Nationality = requestJSON.getString("Nationality");
+                    if(requestJSON.has("ChnName"))
+                        info.ChnName = requestJSON.getString("ChnName");
+                    if(requestJSON.has("PassportNo"))
+                        info.PassportNo = requestJSON.getString("PassportNo");
+                    if(requestJSON.has("ValidDateTo"))
+                        info.ValidDateTo = requestJSON.getString("ValidDateTo");
+                    if(requestJSON.has("BirthPlace"))
+                        info.BirthPlace = requestJSON.getString("BirthPlace");
+                    if(requestJSON.has("MRZ3"))
+                        info.MRZ3 = requestJSON.getString("MRZ3");
+                    if(requestJSON.has("IssuePlace"))
+                        info.issuing_authority = requestJSON.getString("IssuePlace");//二代证通用信息
+                    if(requestJSON.has("ExchangeCardTimes"))
+                        info.ExchangeCardTimes = requestJSON.getString("ExchangeCardTimes");
+                    if(requestJSON.has("IssueDate")) {
+                        String IssueDate = requestJSON.getString("IssueDate");
+                        String[] dates = IssueDate.split("-");
+                        if(dates.length == 2) {
+                            info.idcard_issuedate = dates[0];//二代证通用信息
+                            info.idcard_expiredate = dates[1];//二代证通用信息
+                        }
+                    }
+                    if(requestJSON.has("FprInfo"))
+                        info.FprInfo = requestJSON.getString("FprInfo");//二代证信息，但普通模式未使用
+
+
+
+                    if(!flag10E)
+                        info.idcard_id = "000000181801010002";
                 } catch (JSONException e){
                     e.printStackTrace();
                 }
@@ -247,9 +342,10 @@ public class FdvRestfulService extends Service {
                     if(mRequestResult == CameraActivityData.RESULT_PASS ||
                             mRequestResult == CameraActivityData.RESULT_NOT_PASS) {
                         info_map.put("faceImg", mReqRet_faceImg);
-                        info_map.put("pic", mReqRet_pic);
+                        if(!flag10E)
+                            info_map.put("pic", mReqRet_pic);
                         info_map.put("checkFlag", mReqRet_checkFlag);
-                        info_map.put("mReqRet_compareValue", mReqRet_compareValue);
+                        info_map.put("compareValue", mReqRet_compareValue);
                     }
                     else {
                         info_map.put("err_code", "500");
@@ -305,10 +401,10 @@ public class FdvRestfulService extends Service {
 
     public void setRequestResult(String camera_photo,String idcard_photo,
                                  int result, double sim) {
-        mRequestResult = result;
-        if(mRequestResult == CameraActivityData.RESULT_PASS)
+
+        if(result == CameraActivityData.RESULT_PASS)
             mReqRet_checkFlag = "1";
-        else if(mRequestResult == CameraActivityData.RESULT_NOT_PASS)
+        else if(result == CameraActivityData.RESULT_NOT_PASS)
             mReqRet_checkFlag = "0";
 
         mReqRet_faceImg = camera_photo;
@@ -318,6 +414,8 @@ public class FdvRestfulService extends Service {
 
         DecimalFormat decimalFormat=new DecimalFormat(".00");
         mReqRet_compareValue = decimalFormat.format(sim);
+
+        mRequestResult = result; // 必须在最后设置，否则前面设置的变量会有读写冲突
     }
 
     public class LocalBinder extends Binder {

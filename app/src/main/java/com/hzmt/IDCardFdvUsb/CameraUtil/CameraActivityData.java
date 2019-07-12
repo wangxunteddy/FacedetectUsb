@@ -1,6 +1,7 @@
 package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.os.Handler;
 
 /**
@@ -49,7 +50,7 @@ public class CameraActivityData {
     public static Bitmap CameraImageSub = null;
     public static String CameraImageFeat;
     public static String CameraFaceB64 = null;
-    public static Bitmap CameraFaceImage = null;
+    public static Rect CameraFaceRect = null;
     public static Bitmap UploadCameraImage = null;
     public static Bitmap UploadCameraImageSub = null;
     public static IDCardInfos FdvIDCardInfos;

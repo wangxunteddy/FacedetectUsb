@@ -59,6 +59,7 @@ import com.hzmt.IDCardFdvUsb.util.AssetExtractor;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
 import com.hzmt.IDCardFdvUsb.util.NV21ToBitmap;
 import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
+import com.hzmt.IDCardFdvUsb.util.SystemUtil;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
 
 public class CameraActivity extends AppCompatActivity{
@@ -203,8 +204,11 @@ public class CameraActivity extends AppCompatActivity{
             }
         }.start();
 
+        // network, ip
+        WorkUtils.setNetworkChangeWork(this);
+
         // brightness
-        CameraActivity.startBrightnessWork(this);
+        WorkUtils.startBrightnessWork(this);
 
         // debug output
         mDebugLayout = new DebugLayout(this);
@@ -585,82 +589,6 @@ public class CameraActivity extends AppCompatActivity{
         return at;
     }
 
-    // 返回至无人状态(DetectFaceThread运行检查),不改变屏幕亮度
-    public static void startResumeWorkTimer(int sec){
-        if(null == CameraActivityData.ResumeWorkHandler){
-            CameraActivityData.ResumeWorkHandler = new Handler();
-        }
-        if(null == CameraActivityData.ResumeWorkRunnable) {
-            CameraActivityData.ResumeWorkRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    // 仅startBrightnessWork与startResumeWorkTimer时设置true,退回至无人状态
-                    CameraActivityData.resume_work = true;
-                }
-            };
-        }
-        CameraActivityData.ResumeWorkHandler.removeCallbacks(CameraActivityData.ResumeWorkRunnable);
-        CameraActivityData.ResumeWorkHandler.postDelayed(CameraActivityData.ResumeWorkRunnable,sec*1000);
-    }
-    public static void removeResumeWorkTimer(){
-        if(CameraActivityData.ResumeWorkHandler != null)
-            CameraActivityData.ResumeWorkHandler.removeCallbacks(CameraActivityData.ResumeWorkRunnable);
-    }
-
-    // ===========================================================
-    // screen brightness
-    public static void startBrightnessWork(final Activity activity){
-        startBrightnessWorkMain(activity,10);
-    }
-    public static void startBrightnessWorkTime(final Activity activity, int sec){
-        startBrightnessWorkMain(activity,sec);
-    }
-    public static void startBrightnessWorkMain(final Activity activity, int sec){
-        if(activity == null)
-            return;
-
-        // 取消重复功能的timer
-        removeResumeWorkTimer();
-
-        if(null == MyApplication.BrightnessHandler){
-            MyApplication.BrightnessHandler = new Handler();
-        }
-        if(null == MyApplication.BrightnessRunnable) {
-            MyApplication.BrightnessRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    WindowManager.LayoutParams params = activity.getWindow().getAttributes();
-                    params.screenBrightness = 0.005f;
-                    activity.getWindow().setAttributes(params);
-
-                    // 仅startBrightnessWork与startResumeWorkTimer时设置true,退回至无人状态
-                    CameraActivityData.resume_work = true;
-                    //infoL.resetCameraImage();
-                    //infoL.resetIdcardPhoto();
-                    //infoL.setResultSimilarity("--%");
-                    //infoL.resetResultIcon();
-                }
-            };
-        }
-        MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
-        WindowManager.LayoutParams params = activity.getWindow().getAttributes();
-        params.screenBrightness = 0.5f;
- //       activity.getWindow().setAttributes(params);
-        Window w = activity.getWindow();
-        w.setAttributes(params);
-        MyApplication.BrightnessHandler.postDelayed(MyApplication.BrightnessRunnable,sec*1000);
-    }
-
-    public static void keepBright(Activity activity){
-        if(activity == null)
-            return;
-
-        MyApplication.BrightnessHandler.removeCallbacks(MyApplication.BrightnessRunnable);
-        WindowManager.LayoutParams params = activity.getWindow().getAttributes();
-        params.screenBrightness = 0.5f;
-        activity.getWindow().setAttributes(params);
-    }
-    // ===========================================================
 
     public void backToHelp()
     {
@@ -684,57 +612,6 @@ public class CameraActivity extends AppCompatActivity{
         }
         CameraActivityData.idcardfdv_RequestMode = false;
         CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_NONE;
-    }
-
-    /**
-     * 保存图片
-     */
-    public static void saveUploadBitmap(Context ctx, Bitmap bitmap, String fullname,Bitmap.CompressFormat format) {
-        if(bitmap == null)
-            return;
-
-        // 图片存放路径
-        String path = ctx.getFilesDir().getAbsolutePath();
-        String uploadDir = path + "/UPLOAD/";
-
-        try {
-            File dirFile = new File(uploadDir);
-            if (!dirFile.exists()) {
-                dirFile.mkdirs();
-            }
-            File file = new File(uploadDir, fullname);
-            FileOutputStream fos = new FileOutputStream(file);
-            bitmap.compress(format, 100, fos);
-            fos.flush();
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    public static void saveUploadBitmapBMP(Context ctx, byte[] data, String prename) {
-        // 图片存放路径
-        String path = ctx.getFilesDir().getAbsolutePath();
-        String uploadDir = path + "/UPLOAD/";
-
-        try {
-            File dirFile = new File(uploadDir);
-            if (!dirFile.exists()) {
-                dirFile.mkdirs();
-            }
-            File file = new File(uploadDir, prename + ".bmp");
-            FileOutputStream fos = new FileOutputStream(file);
-            fos.write(data);
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
     }
 
     // restful接收外部识别请求

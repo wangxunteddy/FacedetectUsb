@@ -23,7 +23,7 @@ public class FdvWorkHandler extends Handler {
                 }
                 break;
             case FdvWorkThread.FDVWORK_ON_ALL_DATA_READY:
-                CameraActivity.keepBright(activity);
+                WorkUtils.keepBright(activity);
                 if(CameraActivityData.idcardfdv_NoIDCardMode)
                     activity.mInfoLayout.setIDCardNoBtnEnabled(false);
                 break;

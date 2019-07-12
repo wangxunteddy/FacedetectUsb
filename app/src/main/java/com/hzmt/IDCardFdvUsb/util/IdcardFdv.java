@@ -22,11 +22,13 @@ import java.util.regex.Matcher;
 
 import android.content.Context;
 
+//import com.fasterxml.uuid.Generators;
+//import com.fasterxml.uuid.EthernetAddress;
 import com.hzmt.IDCardFdvUsb.CameraUtil.IDCardInfos;
 import com.hzmt.IDCardFdvUsb.MyApplication;
 //import android.util.Log;
 
-//import com.fasterxml.uuid.Generators;
+
 
 /**
  * Created by xun on 2017/10/15.
@@ -229,6 +231,7 @@ public class IdcardFdv {
                 shaSrc += tempdata;
 
                 String uuidStr = UUID.randomUUID().toString();
+                //String uuidStr = Generators.timeBasedGenerator(EthernetAddress.fromInterface()).generate();
                 tempdata = uuidStr;
                 map.put("uuid", tempdata);
                 shaSrc += tempdata;
@@ -257,6 +260,39 @@ public class IdcardFdv {
                 map.put("idcard_expiredate", idcard_infos.idcard_expiredate);
                 map.put("ethnicgroup", B64Util.stringToBase64(idcard_infos.ethnicgroup));
                 map.put("address", B64Util.stringToBase64(idcard_infos.address));
+                // 护照阅读器10E的信息
+                if(!idcard_infos.ReadedCardType.equals("")){
+                    map.put("ReadedCardType", B64Util.stringToBase64(idcard_infos.ReadedCardType));
+                    map.put("oriimage", idcard_infos.oriimage);
+                    map.put("RFIDMRZ", idcard_infos.RFIDMRZ);
+                    map.put("LocalName", B64Util.stringToBase64(idcard_infos.LocalName));
+                    map.put("OCRMRZ", idcard_infos.RFIDMRZ);
+                    map.put("EngName", idcard_infos.EngName);
+                    map.put("POBPinyin", idcard_infos.POBPinyin);
+                    map.put("IssuePlacePinyin", idcard_infos.IssuePlacePinyin);
+                    map.put("DOB", idcard_infos.DOB);
+                    map.put("IDCardNo", idcard_infos.IDCardNo);
+                    map.put("PassportMRZ", idcard_infos.PassportMRZ);
+                    map.put("ValidDate", idcard_infos.ValidDate);
+                    map.put("IssueState", idcard_infos.IssueState);
+                    map.put("SelfDefineInfo", B64Util.stringToBase64(idcard_infos.SelfDefineInfo));
+                    map.put("EngSurname", idcard_infos.EngSurname);
+                    map.put("POB", B64Util.stringToBase64(idcard_infos.POB));
+                    map.put("EngFirstname", idcard_infos.EngFirstname);
+                    map.put("CardNoMRZ", idcard_infos.CardNoMRZ);
+                    map.put("MRZ1", idcard_infos.MRZ1);
+                    map.put("CardNo", idcard_infos.CardNo);
+                    map.put("MRZ2", idcard_infos.MRZ2);
+                    map.put("CardType", B64Util.stringToBase64(idcard_infos.CardType));
+                    map.put("Nationality", idcard_infos.Nationality);
+                    map.put("ChnName", B64Util.stringToBase64(idcard_infos.ChnName));
+                    map.put("PassportNo", idcard_infos.PassportNo);
+                    map.put("ValidDateTo", idcard_infos.ValidDateTo);
+                    map.put("BirthPlace", B64Util.stringToBase64(idcard_infos.BirthPlace));
+                    map.put("MRZ3", idcard_infos.MRZ3);
+                    map.put("ExchangeCardTimes", idcard_infos.ExchangeCardTimes);
+                    map.put("FprInfo", B64Util.stringToBase64(idcard_infos.FprInfo));
+                }
 
                 if(0 == requestType) {
                     // image fdv
@@ -306,6 +342,7 @@ public class IdcardFdv {
             //===================
             // test code
             MyApplication.idcardfdvStepCnt2 = System.currentTimeMillis() - MyApplication.idcardfdvStepCnt;
+            MyApplication.idcardfdvStepCnt = System.currentTimeMillis();
             //===================
             JSONObject resultJSON;
             if(null != certstream)

@@ -48,6 +48,7 @@ public class IDCardReadThread extends Thread {
 
         if(!MyApplication.DebugNoIDCardReader) {
             int readerState = activity.mIDCardReader.GetInitState();
+            boolean nowreq = IDCardReader.STATE_REQUUST_PERMISSION == readerState;
             while (IDCardReader.STATE_REQUUST_PERMISSION == readerState) {
                 // 读卡器权限确认中，等待确认结果
                 try {
@@ -59,7 +60,10 @@ public class IDCardReadThread extends Thread {
                 readerState = activity.mIDCardReader.GetInitState();
             }
 
-            if (readerState != IDCardReader.STATE_INIT_OK) {
+            if (nowreq && readerState != IDCardReader.STATE_INIT_OK &&
+                    !CameraActivityData.idcardfdv_NoIDCardMode &&
+                    !CameraActivityData.idcardfdv_RequestMode) {
+                // 只在权限确认后判断
                 Message msg = new Message();
                 msg.what = IDCARD_ERR_READERR;
                 mHandler.sendMessage(msg);

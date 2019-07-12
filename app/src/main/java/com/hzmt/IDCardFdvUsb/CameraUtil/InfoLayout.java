@@ -76,7 +76,7 @@ public class InfoLayout {
             //            return;
 
                     if(hasFocus) {
-                        CameraActivity.keepBright(activity);
+                        WorkUtils.keepBright(activity);
                     }
                     else {
                         // 关闭软键盘
@@ -86,7 +86,7 @@ public class InfoLayout {
                             imm.hideSoftInputFromWindow(v.getWindowToken(),0);
                         }
 
-                        CameraActivity.startBrightnessWork(activity);
+                        WorkUtils.startBrightnessWork(activity);
                     }
             }
         });
@@ -314,7 +314,7 @@ public class InfoLayout {
                     if(activity == null)
                         return;
 
-                    CameraActivity.startBrightnessWork(activity);
+                    WorkUtils.startBrightnessWork(activity);
 
                     String thStr = edit.getText().toString();
                     if(thStr.isEmpty())
@@ -334,7 +334,7 @@ public class InfoLayout {
                     CameraActivity activity = mActivity.get();
                     if(activity == null)
                         return;
-                    CameraActivity.startBrightnessWork(activity);
+                    WorkUtils.startBrightnessWork(activity);
                 }
             });
 
@@ -342,7 +342,7 @@ public class InfoLayout {
             dlg.show();
 
 
-            CameraActivity.keepBright(activity);
+            WorkUtils.keepBright(activity);
         }
     }
 

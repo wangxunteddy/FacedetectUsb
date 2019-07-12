@@ -1,12 +1,26 @@
 package com.hzmt.IDCardFdvUsb.util;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.Network;
+import android.net.NetworkInfo;
+import android.os.Build;
+import android.util.Log;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by xun on 2017/9/11.
@@ -38,6 +52,42 @@ public class SystemUtil {
             return "02:00:00:00:00:02";
         }
         return macAddress;
+    }
+
+
+    /**
+     * 优先获取以太网IP，其次wifi，否则null
+     *
+     */
+    public static String getIpAddress(Context context){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            ConnectivityManager connectivityManager = (ConnectivityManager) context
+                    .getSystemService(Context.CONNECTIVITY_SERVICE);
+            Network[] networks = connectivityManager.getAllNetworks();
+            String ipRet = null;
+            for(Network nw:networks){
+                NetworkInfo networkInfo = connectivityManager.getNetworkInfo(nw);
+                if (networkInfo != null && networkInfo.isAvailable()) {
+                    LinkProperties properties = connectivityManager
+                            .getLinkProperties(nw);
+
+                    if (properties != null) {
+                        String ipString = properties.getLinkAddresses().toString();
+                        Pattern pattern = Pattern.compile("\\d+.\\d+.\\d+.\\d+");
+                        Matcher matcher = pattern.matcher(ipString);
+                        if (matcher.find()) {
+                            if(networkInfo.getType() == ConnectivityManager.TYPE_ETHERNET)
+                                return matcher.group();
+                            else if(networkInfo.getType() == ConnectivityManager.TYPE_WIFI)
+                                ipRet = matcher.group();
+                        }
+                    }
+                }
+            }
+            return ipRet;
+        }
+        else
+            return null;
     }
 
     /**
@@ -104,4 +154,28 @@ public class SystemUtil {
         }
         return des;
     }
+
+    /**
+     * UDP广播
+     *
+     */
+    public static void sendUDPBrocast(byte[] data, int port){
+        DatagramSocket ms = null;
+        DatagramPacket dataPacket = null;
+        try {
+            InetAddress address = InetAddress.getByName("255.255.255.255");
+            ms = new DatagramSocket();
+            //System.out.println(address.isMulticastAddress());
+            dataPacket = new DatagramPacket(data, data.length, address,
+                    port);
+            ms.send(dataPacket);
+            //ms.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (ms != null)
+                ms.close();
+        }
+    }
+
 }

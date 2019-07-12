@@ -11,6 +11,7 @@ import android.widget.Toast;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
 import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
+import com.hzmt.IDCardFdvUsb.util.SystemUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.ref.WeakReference;
@@ -52,7 +53,8 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
 
         // face detect
         Rect face = new Rect();
-        boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
+        //boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
+        boolean detect = false;
 
         // 检查和重新初始化阅读器
         CameraActivityData.CheckIDCardReaderCnt++;
@@ -104,7 +106,7 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
                     int readerState = activity.mIDCardReader.GetInitState();
                     if (IDCardReader.STATE_NO_DEV == readerState ||
                             IDCardReader.STATE_INIT_ERR == readerState) {
-                        CameraActivity.startBrightnessWork(activity);
+                        WorkUtils.startBrightnessWork(activity);
                         String errMsg = "未找到身份证阅读器!";
                         ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                         try {
@@ -115,7 +117,7 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
                         CameraActivityData.detect_face_enable = true;
                         return;
                     } else if (IDCardReader.STATE_REFUSE_PERMISSION == readerState) {
-                        CameraActivity.startBrightnessWork(activity);
+                        WorkUtils.startBrightnessWork(activity);
                         String errMsg = "无权限访问身份证阅读器!";
                         ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
                         try {
