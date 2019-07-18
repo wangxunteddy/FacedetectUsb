@@ -10,6 +10,7 @@ using namespace web;
 using namespace http;
 using namespace utility;
 using namespace http::experimental::listener;
+//using namespace std;
 
 #define WRITE_T_LOG_ENABLE 0
 
@@ -17,14 +18,14 @@ using namespace http::experimental::listener;
 #define SLEEP_TIME 5000 //间隔时间
 #define FILE_PATH "C:\\IPReportSrvLog.txt" //信息输出文件
 
-std::string IPAddress = "";
-
 bool brun = false;
 
 SERVICE_STATUS servicestatus;
 SERVICE_STATUS_HANDLE hstatus;
 class CommandHandler;
 CommandHandler* pCmdHandler = 0;
+std::map<std::string, std::string> IPMap;
+//std::string IPAddress = "";
 
 int WriteToLog(const char* str);
 
@@ -50,8 +51,8 @@ private:
 
 CommandHandler::CommandHandler(utility::string_t url) : m_listener(url)
 {
-	m_listener.support(methods::GET, std::bind(&CommandHandler::handle_get_or_post, this, std::placeholders::_1));
-//	m_listener.support(methods::POST, std::bind(&CommandHandler::handle_get_or_post, this, std::placeholders::_1));
+//	m_listener.support(methods::GET, std::bind(&CommandHandler::handle_get_or_post, this, std::placeholders::_1));
+	m_listener.support(methods::POST, std::bind(&CommandHandler::handle_get_or_post, this, std::placeholders::_1));
 }
 
 void CommandHandler::handle_get_or_post(http_request message)
@@ -59,7 +60,27 @@ void CommandHandler::handle_get_or_post(http_request message)
 //	ucout << "Method: " << message.method() << std::endl;
 //	ucout << "URI: " << http::uri::decode(message.relative_uri().path()) << std::endl;
 //	ucout << "Query: " << http::uri::decode(message.relative_uri().query()) << std::endl << std::endl;
-	message.reply(status_codes::OK, IPAddress);
+
+	std::string ProductSn;
+	ProductSn.clear();
+	const json::value& jval = message.extract_json().get();
+	const web::json::object& jobj = jval.as_object();
+	if (jval.has_field(U("ProductSn"))) {
+		utility::string_t str = jobj.at(L"ProductSn").as_string();
+		ProductSn = utility::conversions::to_utf8string(str);
+	}
+
+	std::string replymsg = "";
+	if (ProductSn.size() == 0 && IPMap.size() == 1) {
+		// 未指定sn且仅有一台IP记录
+		replymsg = IPMap.begin()->second;
+	}
+	else if(ProductSn.size() > 0 && IPMap.size() > 0) {
+		auto iter = IPMap.find(ProductSn);
+		if (iter != IPMap.end())
+			replymsg = iter->second;
+	}
+	message.reply(status_codes::OK, replymsg);
 };
 
 int WriteToLog(const char* str)
@@ -129,6 +150,53 @@ void WINAPI CtrlHandler(DWORD request)
 	SetServiceStatus(hstatus, &servicestatus);
 }
 
+std::vector<std::string> split(std::string strtem, char a)
+{
+	std::vector<std::string> strvec;
+
+	std::string::size_type pos1, pos2;
+	pos2 = strtem.find(a);
+	pos1 = 0;
+	while (std::string::npos != pos2)
+	{
+		strvec.push_back(strtem.substr(pos1, pos2 - pos1));
+
+		pos1 = pos2 + 1;
+		pos2 = strtem.find(a, pos1);
+	}
+	strvec.push_back(strtem.substr(pos1));
+	return strvec;
+}
+
+void analyseReceiveMsg(char* msg)
+{
+	std::string msgstr = msg;
+	std::string ProductSn, IPAddress;
+	ProductSn.clear();
+	IPAddress.clear();
+	std::vector<std::string> s1,s2;
+	s1 = split(msgstr, ';');
+	if (s1.size() == 2) {
+		s2 = split(s1[0], ':');
+		if (s2.size() == 2 && strcmp(s2[0].c_str(),"ProductSn") == 0 && strcmp(s2[1].c_str(),"null") != 0) {
+			ProductSn = s2[1];
+		}
+		s2 = split(s1[1], ':');
+		if (s2.size() == 2 && strcmp(s2[0].c_str(),"IPAddress") == 0) {
+			IPAddress = s2[1];
+		}
+	}
+
+	if (ProductSn.size() > 0 && IPAddress.size() > 0) {
+		auto iter = IPMap.find(ProductSn);
+		if (iter != IPMap.end()) {
+			iter->second = IPAddress;
+		}
+		else
+			IPMap.insert(std::pair<std::string, std::string>(ProductSn, IPAddress));
+	}
+}
+
 void IPReceiveWork()
 {
 	WSADATA wsaData;
@@ -173,6 +241,7 @@ void IPReceiveWork()
 
 	int nAddrLen = sizeof(SOCKADDR);
 	char buff[512] = "";       //定义接收缓冲区
+	IPMap.clear();
 	brun = true;
 	WriteToLog("init OK!");
 	while (brun) {
@@ -186,7 +255,7 @@ void IPReceiveWork()
 		}
 
 		buff[nSendSize] = '\0';   //字符串终止
-		IPAddress = buff;
+		analyseReceiveMsg(buff);
 		WriteToLog(buff);
 		//printf("%s\n", IPAddress.c_str());
 	}

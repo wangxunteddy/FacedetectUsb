@@ -15,6 +15,7 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
 import com.hzmt.IDCardFdvUsb.util.SystemUtil;
 
 import java.io.File;
@@ -32,23 +33,37 @@ public class WorkUtils {
             return false;
         }
 
-        if(!newIp.equals(MyApplication.myIPAddress)){
-            MyApplication.myIPAddress = newIp;
-            SystemUtil.sendUDPBrocast(MyApplication.myIPAddress.getBytes(), 55530);
-            return true;
+        //if(!newIp.equals(MyApplication.myIPAddress)){
+        {
+            String sn = IdcardFdvRegister.getProductSn();
+            String sendstr = "ProductSn:";
+            if(sn == null) {
+                //sendstr += "null;";
+                return false;
+            }
+            else {
+                sn = sn.replace("-", ""); // 去'-'
+                sendstr += (sn + ";");
+            }
+            sendstr+=("IPAddress:"+newIp);
+
+            if(SystemUtil.sendUDPBrocast(sendstr.getBytes(), 55530)){
+                MyApplication.myIPAddress = newIp;
+                return true;
+            }
         }
-        else
-            return false;
+
+        return false;
     }
 
-    public static void startIPReportTimer(final Context context){
+    public static void startIPReportThread(final Context context){
         new Thread(){
             @Override
             public void run(){
                 while(true){
                     WorkUtils.reportIPChange(context);
                     try {
-                        Thread.sleep(1000 * 60);
+                        Thread.sleep(1000 * 10);
                     } catch (InterruptedException e){
                         e.printStackTrace();
                     }

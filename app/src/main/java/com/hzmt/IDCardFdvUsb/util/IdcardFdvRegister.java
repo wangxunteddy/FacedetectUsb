@@ -49,7 +49,10 @@ public class IdcardFdvRegister {
     private static final String REG_FILE = "IDCardFdvReg.txt";
 
     public static String getProductSn(){
-        return ProductSn;
+        if(RegisteredNo == null || RegisteredNo.equals(""))
+            return null;        // 未完成注册
+        else
+            return ProductSn;
     }
 
     public static String getRegisterdNo(){

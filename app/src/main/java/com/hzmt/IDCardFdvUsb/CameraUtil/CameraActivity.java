@@ -607,7 +607,7 @@ public class CameraActivity extends AppCompatActivity{
             if(CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_NOT_PASS &&
                     CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_PASS )
             {
-                mFdvSrv.setRequestResult("","",CameraActivityData.RESULT_FAILED,0.0);
+                mFdvSrv.setRequestResult("","",CameraActivityData.RESULT_FAILED, null,0.0);
             }
         }
         CameraActivityData.idcardfdv_RequestMode = false;
@@ -628,7 +628,7 @@ public class CameraActivity extends AppCompatActivity{
             // 不在帮助画面时不执行
             if(mFdvSrv != null)
                 mFdvSrv.setRequestResult("","",
-                        CameraActivityData.RESULT_FAILED,0.0);
+                        CameraActivityData.RESULT_FAILED,"设备正忙，请稍候重试。", 0.0);
             return;
         }
 

@@ -25,6 +25,7 @@ import android.content.Context;
 //import com.fasterxml.uuid.Generators;
 //import com.fasterxml.uuid.EthernetAddress;
 import com.hzmt.IDCardFdvUsb.CameraUtil.IDCardInfos;
+import com.hzmt.IDCardFdvUsb.CameraUtil.WorkUtils;
 import com.hzmt.IDCardFdvUsb.MyApplication;
 //import android.util.Log;
 
@@ -122,6 +123,7 @@ public class IdcardFdv {
             }
             manager.setCertStream(certstream_cpy);
 
+            final Context context_p = context;
             final String urlstring_p = urlstring;
             final int requestType_p = requestType;
          //   final String idcard_id_p = idcard_id;
@@ -143,6 +145,14 @@ public class IdcardFdv {
                             certstream_p, cb_p);
 
                     th.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,(Void)null);
+
+                    // 广播IP
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            WorkUtils.reportIPChange(context_p);
+                        }
+                    }).start();
                 }
 
                 @Override
@@ -166,6 +176,7 @@ public class IdcardFdv {
 
 
     private static class HttpsThread extends AsyncTask<Void, Void, JSONObject> {
+        //Context context;
         private String urlstring;
         private int requestType;
         //private String idcard_id;
@@ -179,8 +190,9 @@ public class IdcardFdv {
         private InputStream certstream;
         private RequestCallBack callback;
 
-        public HttpsThread(String urlstring,
-                           int    requestType,
+        public HttpsThread(//Context context,
+                           String urlstring,
+                           int  requestType,
                            //String idcard_id,
                            //String idcard_issuedate,
                            IDCardInfos idcard_infos,
@@ -191,6 +203,7 @@ public class IdcardFdv {
                            String verify_photo,
                            InputStream certstream,
                            RequestCallBack callback){
+            //this.context=context;
             this.urlstring = urlstring;
             this.requestType = requestType;
             //this.idcard_id = idcard_id;
@@ -257,7 +270,7 @@ public class IdcardFdv {
                 map.put("issuing_authority", B64Util.stringToBase64(idcard_infos.issuing_authority));
                 map.put("birthdate", idcard_infos.birthdate);
                 map.put("sex", B64Util.stringToBase64(idcard_infos.sex));
-                map.put("idcard_expiredate", idcard_infos.idcard_expiredate);
+                map.put("idcard_expiredate", B64Util.stringToBase64(idcard_infos.idcard_expiredate));
                 map.put("ethnicgroup", B64Util.stringToBase64(idcard_infos.ethnicgroup));
                 map.put("address", B64Util.stringToBase64(idcard_infos.address));
                 // 护照阅读器10E的信息
@@ -287,7 +300,7 @@ public class IdcardFdv {
                     map.put("Nationality", idcard_infos.Nationality);
                     map.put("ChnName", B64Util.stringToBase64(idcard_infos.ChnName));
                     map.put("PassportNo", idcard_infos.PassportNo);
-                    map.put("ValidDateTo", idcard_infos.ValidDateTo);
+                    map.put("ValidDateTo", B64Util.stringToBase64(idcard_infos.ValidDateTo));
                     map.put("BirthPlace", B64Util.stringToBase64(idcard_infos.BirthPlace));
                     map.put("MRZ3", idcard_infos.MRZ3);
                     map.put("ExchangeCardTimes", idcard_infos.ExchangeCardTimes);
@@ -339,6 +352,9 @@ public class IdcardFdv {
                 e.printStackTrace();
             }
 
+            //idcard_infos.dump(context);
+            //String dumpstr = object.toString();
+            //SystemUtil.outputString2File(context,dumpstr);
             //===================
             // test code
             MyApplication.idcardfdvStepCnt2 = System.currentTimeMillis() - MyApplication.idcardfdvStepCnt;
@@ -415,9 +431,5 @@ public class IdcardFdv {
                 0, 0, bm.getWidth(),  bm.getHeight(), null, true);
 
         return nbmp;
-    }
-
-    private void dumpJson(JSONObject obj){
-
     }
 }

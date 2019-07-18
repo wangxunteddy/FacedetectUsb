@@ -1,5 +1,9 @@
 package com.hzmt.IDCardFdvUsb.CameraUtil;
 
+import android.content.Context;
+
+import com.hzmt.IDCardFdvUsb.util.SystemUtil;
+
 import java.io.Serializable;
 
 public class IDCardInfos implements Cloneable, Serializable {
@@ -96,5 +100,21 @@ public class IDCardInfos implements Cloneable, Serializable {
         MRZ3 = "";
         ExchangeCardTimes = "";
         FprInfo = "";
+    }
+
+    public void dump(Context context){
+        String allstr =
+                "name:"+name+
+                "issuing_authority:"+issuing_authority+
+                "birthdate:"+birthdate+
+                "sex:"+sex+
+                "idcard_issuedate:"+idcard_issuedate+
+                "idcard_expiredate:"+idcard_expiredate+
+                "idcard_id:"+idcard_id+
+                "ethnicgroup:"+ethnicgroup+
+                "address:"+address+
+                "idcard_photo:"+idcard_photo;
+
+        SystemUtil.outputString2File(context,allstr);
     }
 }

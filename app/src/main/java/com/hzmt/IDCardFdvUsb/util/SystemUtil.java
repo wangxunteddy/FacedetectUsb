@@ -10,7 +10,12 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.util.Log;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -159,7 +164,8 @@ public class SystemUtil {
      * UDP广播
      *
      */
-    public static void sendUDPBrocast(byte[] data, int port){
+    public static boolean sendUDPBrocast(byte[] data, int port){
+        boolean ret = false;
         DatagramSocket ms = null;
         DatagramPacket dataPacket = null;
         try {
@@ -170,12 +176,37 @@ public class SystemUtil {
                     port);
             ms.send(dataPacket);
             //ms.close();
+            ret = true;
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (ms != null)
                 ms.close();
         }
+
+        return ret;
     }
 
+
+    /**
+     * 输出字符串到文本
+     *
+     */
+    public static void outputString2File(Context context, String str){
+        Long time = System.currentTimeMillis();
+        String fname = context.getExternalFilesDir(null).getAbsolutePath()
+                + File.separator + time.toString()+".txt";
+
+        try {
+            File outfile = new File(fname);
+            FileOutputStream outputStream = new FileOutputStream(outfile);
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
+            bw.write(str);
+            bw.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

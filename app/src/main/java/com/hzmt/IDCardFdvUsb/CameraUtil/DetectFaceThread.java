@@ -1,5 +1,6 @@
 package com.hzmt.IDCardFdvUsb.CameraUtil;
 
+import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -55,6 +56,10 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
         Rect face = new Rect();
         //boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
         boolean detect = false;
+
+        // 检查IP报告情况
+        if(MyApplication.myIPAddress.equals(""))
+            WorkUtils.reportIPChange(activity);
 
         // 检查和重新初始化阅读器
         CameraActivityData.CheckIDCardReaderCnt++;

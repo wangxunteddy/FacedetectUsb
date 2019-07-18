@@ -2,7 +2,7 @@
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <script type="text/javascript" src="jquery.min.js"></script>
     <title></title>
 </head>
@@ -14,12 +14,13 @@
     		<td style="border-left:0;border-top:0;">
     			　　<input id="Button1" type="button" value="打开设备" onclick="btnLoadOCRdll_Click()" />
     			　　<input id="Button2" type="button" value="关闭设备" onclick="btnUnloadOCRdll_Click()"/>
+    					　　　　　　　验证设备注册码：<input id="FDVProductSn" type="text" value="" />
     					<br>
     					<br>
     					<form name="lightform" method="post" action="">
   						　　<input type="radio" name="light" value="1" />可见光
   						　　<input type="radio" name="light" value="0" checked />红外
-  						　　<input id="readcard" type="button" value="读取验证" onclick="btnReadCard_Click()"/>
+  						　　　　　<input id="readcard" type="button" value="读取验证" onclick="btnReadCard_Click()"/>
   							　　证件类型：<input id="cardType" type="text" value="" />
 							</form>
     		</td>
@@ -722,6 +723,8 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
         if(ret[0]!="0" || ret[1]!=",")
         	return;
         	
+        document.getElementById("readcard").disabled = "true";
+        	
         var data={};
         
         var str;
@@ -739,7 +742,7 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
         
         str = controldemo.getCT();
         document.getElementById("cardType").value = str;
-        data["cardType"] = str;
+        data["cardType"] = encodeURI(str);
         
         el = document.getElementById("oriimage");
         str = controldemo.getOriImageBase64();
@@ -755,120 +758,121 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
         
         el = document.getElementById("cardName_T");
         str = controldemo.getName();
+        str = $.trim(str);
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("cardName").value = str;
-        data["cardName"] = str;
+        data["cardName"] = encodeURI(str);
         el = document.getElementById("RFIDMRZ_T");
         str = controldemo.getRFIDMRZ();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("RFIDMRZ").value = str;
-        data["RFIDMRZ"] = str;
+        data["RFIDMRZ"] = encodeURI(str);
         
         el = document.getElementById("LocalName_T");
         str = controldemo.getLocalName();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("LocalName").value = str;
-        data["LocalName"] = str;
+        data["LocalName"] = encodeURI(str);
         el = document.getElementById("OCRMRZ_T");
         str = controldemo.getOCRMRZ();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("OCRMRZ").value = str;
-        data["OCRMRZ"] = str;
+        data["OCRMRZ"] = encodeURI(str);
         
         el = document.getElementById("EngName_T");
         str = controldemo.getEngName();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("EngName").value = str;
-        data["EngName"] = str;
+        data["EngName"] = encodeURI(str);
         el = document.getElementById("POBPinyin_T");
         str = controldemo.getPOBPinyin();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("POBPinyin").value = str;
-        data["POBPinyin"] = str;
+        data["POBPinyin"] = encodeURI(str);
         
         el = document.getElementById("Gender_T");
         str = controldemo.getGender();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("Gender").value = str;
-        data["Gender"] = str;
+        data["Gender"] = encodeURI(str);
         el = document.getElementById("IssuePlacePinyin_T");
         str = controldemo.getIssuePlacePinyin();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("IssuePlacePinyin").value = str;
-        data["IssuePlacePinyin"] = str;
+        data["IssuePlacePinyin"] = encodeURI(str);
         
         el = document.getElementById("DOB_T");
         str = controldemo.getDOB();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("DOB").value = str;
-        data["DOB"] = str;
+        data["DOB"] = encodeURI(str);
         el = document.getElementById("IDCardNo_T");
         str = controldemo.getIDCardNo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("IDCardNo").value = str;
-        data["IDCardNo"] = str;
+        data["IDCardNo"] = encodeURI(str);
         
         el = document.getElementById("Birthday_T");
         str = controldemo.getBirthday();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("Birthday").value = str;
-        data["Birthday"] = str;
+        data["Birthday"] = encodeURI(str);
         el = document.getElementById("Minzu_T");
         str = controldemo.getMinzu();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("Minzu").value = str;
-        data["Minzu"] = str;
+        data["Minzu"] = encodeURI(str);
         
         el = document.getElementById("PassportMRZ_T");
         str = controldemo.getPassportMRZ();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("PassportMRZ").value = str;
-        data["PassportMRZ"] = str;
+        data["PassportMRZ"] = encodeURI(str);
         el = document.getElementById("Address_T");
         str = controldemo.getAddress();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("Address").value = str;
-        data["Address"] = str;
+        data["Address"] = encodeURI(str);
         
         el = document.getElementById("ValidDate_T");
         str = controldemo.getValidDate();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("ValidDate").value = str;
-        data["ValidDate"] = str;
+        data["ValidDate"] = encodeURI(str);
         el = document.getElementById("IDNo_T");
         str = controldemo.getIDNo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("IDNo").value = str;
-        data["IDNo"] = str;
+        data["IDNo"] = encodeURI(str);
         
         el = document.getElementById("IssueState_T");
         str = controldemo.getIssueState();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("IssueState").value = str;
-        data["IssueState"] = str;
+        data["IssueState"] = encodeURI(str);
         el = document.getElementById("SelfDefineInfo_T");
         str = controldemo.getSelfDefineInfo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("SelfDefineInfo").value = str;
-        data["SelfDefineInfo"] = str;
+        data["SelfDefineInfo"] = encodeURI(str);
         
         el = document.getElementById("EngSurname_T");
         //  controldemo.getEngSurname()无实际内容时得到的字符不明，只能先使用再从控件获取
@@ -876,117 +880,117 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
         var str = document.getElementById("EngSurname").value;
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
-        data["EngSurname"] = str;
+        data["EngSurname"] = encodeURI(str);
         el = document.getElementById("POB_T");
         str = controldemo.getPOB();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("POB").value = str;
-        data["POB"] = str;
+        data["POB"] = encodeURI(str);
         
         el = document.getElementById("EngFirstname_T");
         str = controldemo.getEngFirstname();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("EngFirstname").value = str;
-        data["EngFirstname"] = str;
+        data["EngFirstname"] = encodeURI(str);
         el = document.getElementById("CardNoMRZ_T");
         str = controldemo.getCardNoMRZ();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("CardNoMRZ").value = str;
-        data["CardNoMRZ"] = str;
+        data["CardNoMRZ"] = encodeURI(str);
         
         el = document.getElementById("MRZ1_T");
         str = controldemo.getMRZ1();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("MRZ1").value = str;
-        data["MRZ1"] = str;
+        data["MRZ1"] = encodeURI(str);
         el = document.getElementById("CardNo_T");
         str = controldemo.getCardNo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("CardNo").value = str;
-        data["CardNo"] = str;
+        data["CardNo"] = encodeURI(str);
         
         el = document.getElementById("MRZ2_T");
         str = controldemo.getMRZ2();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("MRZ2").value = str;
-        data["MRZ2"] = str;
+        data["MRZ2"] = encodeURI(str);
         el = document.getElementById("CardType_T");
         str = controldemo.getCardType();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("CardType").value = str;
-        data["CardType"] = str;
+        data["CardType"] = encodeURI(str);
         
         el = document.getElementById("Nationality_T");
         str = controldemo.getNationality();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("Nationality").value = str;
-        data["Nationality"] = str;
+        data["Nationality"] = encodeURI(str);
         el = document.getElementById("ChnName_T");
         str = controldemo.getChnName();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("ChnName").value = str;
-        data["ChnName"] = str;
+        data["ChnName"] = encodeURI(str);
         
         el = document.getElementById("PassportNo_T");
         str = controldemo.getPassportNo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("PassportNo").value = str;
-        data["PassportNo"] = str;
+        data["PassportNo"] = encodeURI(str);
         el = document.getElementById("ValidDateTo_T");
         str = controldemo.getValidDateTo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("ValidDateTo").value = str;
-        data["ValidDateTo"] = str;
+        data["ValidDateTo"] = encodeURI(str);
         
         el = document.getElementById("BirthPlace_T");
         str = controldemo.getBirthPlace();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("BirthPlace").value = str;
-        data["BirthPlace"] = str;
+        data["BirthPlace"] = encodeURI(str);
         el = document.getElementById("MRZ3_T");
         str = controldemo.getMRZ3();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("MRZ3").value = str;
-        data["MRZ3"] = str;
+        data["MRZ3"] = encodeURI(str);
         
         el = document.getElementById("IssuePlace_T");
         str = controldemo.getIssuePlace();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("IssuePlace").value = str;
-        data["IssuePlace"] = str;
+        data["IssuePlace"] = encodeURI(str);
         el = document.getElementById("ExchangeCardTimes_T");
         str = controldemo.getExchangeCardTimes();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("ExchangeCardTimes").value = str;
-        data["ExchangeCardTimes"] = str;
+        data["ExchangeCardTimes"] = encodeURI(str);
         
         el = document.getElementById("IssueDate_T");
         str = controldemo.getIssueDate();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("IssueDate").value = str;
-        data["IssueDate"] = str;
+        data["IssueDate"] = encodeURI(str);
         el = document.getElementById("FprInfo_T");
         str = controldemo.getFprInfo();
         if(str) el.style.color = "red";
         else el.removeAttribute("style");
         document.getElementById("FprInfo").value = str;
-        data["FprInfo"] = str;
+        data["FprInfo"] = encodeURI(str);
         
         data["instructType"]="10E";
         fdv_work(data);
@@ -995,30 +999,40 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
     function fdv_work(data)
     {
     	var urlIPAddress = "http://localhost:55531";
+    	var SnData = {};
+    	var snstr = document.getElementById("FDVProductSn").value;
+    	SnData["ProductSn"] = snstr.split("-").join("");	// 去掉-
     	$.ajax({
-				type: "GET",
+				type: "POST",
 				url: urlIPAddress,
-				contentType: "text/plain;charset=utf-8",
+				contentType: "application/json;charset=utf-8",
+				dataType: "text",
+				data: JSON.stringify(SnData),
 				error: function(XMLHttpRequest, textStatus, errorThrown) {
                         alert("无法获取验证设备IP！");
+                        document.getElementById("readcard").removeAttribute("disabled");
                     }
-			}).done(function(obj) {
-				if(obj === "")
+			}).done(function(obj){
+				if(obj === ""){
 					alert("无法获取验证设备IP！");
+					document.getElementById("readcard").removeAttribute("disabled");
+				}
 				else{
 					var urlFdvSrv = "http://"+obj+":55532/Ver10/Face_Instruct";
     			$.ajax({
 						type: "POST",
 						url: urlFdvSrv,
 						contentType: "application/json;charset=utf-8",
+						dataType: "json",
+						data: JSON.stringify(data),
 						error: function(XMLHttpRequest, textStatus, errorThrown) {
                         alert("网络错误！");
-                    },
-						dataType: "json",
-						data: JSON.stringify(data)
+                        document.getElementById("readcard").removeAttribute("disabled");
+                    }
 					}).done(function(obj) {
 						if(typeof obj["err_code"]!='undefined' && obj["err_code"]!="0"){
 							document.getElementById("compareValue").innerHTML = obj["err_msg"];
+							document.getElementById("readcard").removeAttribute("disabled");
 							return;
 						}
 						document.getElementById("compareValue").innerHTML=obj["compareValue"]+"%";
@@ -1027,11 +1041,12 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
 							document.getElementById("retImg").src = document.getElementById("retImg_pass_preload").src;
 						else
 							document.getElementById("retImg").src = document.getElementById("retImg_notpass_preload").src;
+							
+						document.getElementById("readcard").removeAttribute("disabled");
 					});
 				}
 			});
-    	
-    	
+    	    	
     }
 
 </script>

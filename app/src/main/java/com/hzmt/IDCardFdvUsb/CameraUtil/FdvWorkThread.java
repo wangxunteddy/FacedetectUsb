@@ -296,13 +296,11 @@ public class FdvWorkThread extends Thread {
                                 int _result = simPass ? CameraActivityData.RESULT_PASS : CameraActivityData.RESULT_NOT_PASS;
                                 cbctx.mFdvSrv.setRequestResult(CameraActivityData.CameraFaceB64,
                                         CameraActivityData.FdvIDCardInfos.idcard_photo,
-                                        _result, sim * 100);
+                                        _result, null,sim * 100);
                             }
-                            else{
-                                // 否则设置最后识别信息
-                                cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
-                                cbctx.mFdvSrv.setResult(simPass);
-                            }
+                            // 设置最后识别信息
+                            cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
+                            cbctx.mFdvSrv.setResult(simPass);
                         }
                         saveUpload = true;
                     }
@@ -310,7 +308,7 @@ public class FdvWorkThread extends Thread {
                         CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
                         if(CameraActivityData.idcardfdv_RequestMode && cbctx.mFdvSrv != null)
                             cbctx.mFdvSrv.setRequestResult("","",
-                                    CameraActivityData.RESULT_FAILED,0.0);
+                                    CameraActivityData.RESULT_FAILED,null,0.0);
 
                         String err_msg = object.getString("Err_msg");
                         ShowToastUtils.showToast(cbctx, err_msg, Toast.LENGTH_SHORT);
@@ -319,8 +317,18 @@ public class FdvWorkThread extends Thread {
                     CameraActivityData.idcardfdv_result = CameraActivityData.RESULT_FAILED;
                     if(CameraActivityData.idcardfdv_RequestMode && cbctx.mFdvSrv != null)
                         cbctx.mFdvSrv.setRequestResult("","",
-                                CameraActivityData.RESULT_FAILED,0.0);
+                                CameraActivityData.RESULT_FAILED, null,0.0);
                     e.printStackTrace();
+                }
+
+                String savePrename = "";
+                if(saveUpload) {
+                    // 因身份证号码缓存清理，需提前确定保存文件名
+                    int simInt = (int) (sim * 1000);
+                    savePrename = String.format("%s_%s_%03d",
+                            CameraActivityData.FdvIDCardInfos.idcard_id,
+                            serial_no,
+                            simInt);
                 }
 
                 // 清理身份证号码缓存以避免下次直接使用身份证产生问题
@@ -343,24 +351,19 @@ public class FdvWorkThread extends Thread {
                 delayResumeFdvWork(cbctx,3*1000);
 
                 if(saveUpload){
-                    int simInt = (int)(sim * 1000);
-                    String prename = String.format("%s_%s_%03d",
-                            CameraActivityData.FdvIDCardInfos.idcard_id,
-                            serial_no,
-                            simInt);
                     if(!MyApplication.DebugNoIDCardReader) {
                         // 身份证照片
                         if(!CameraActivityData.idcardfdv_NoIDCardMode)
                             WorkUtils.saveUploadBitmap(cbctx, CameraActivityData.PhotoImage,
-                                                prename + "_0.png", Bitmap.CompressFormat.PNG);
+                                    savePrename + "_0.png", Bitmap.CompressFormat.PNG);
 
                         // 主摄像头照片
                         WorkUtils.saveUploadBitmap(cbctx,CameraActivityData.UploadCameraImage,
-                                            prename + "_1.jpeg", Bitmap.CompressFormat.JPEG);
+                                            savePrename + "_1.jpeg", Bitmap.CompressFormat.JPEG);
                         // 红外照片
                         if(MyApplication.idcardfdv_subCameraEnable) {
                             WorkUtils.saveUploadBitmap(cbctx, CameraActivityData.UploadCameraImageSub,
-                                                prename + "_2.jpeg",Bitmap.CompressFormat.JPEG);
+                                    savePrename + "_2.jpeg",Bitmap.CompressFormat.JPEG);
                         }
 
                         CameraActivityData.UploadCameraImage = null;

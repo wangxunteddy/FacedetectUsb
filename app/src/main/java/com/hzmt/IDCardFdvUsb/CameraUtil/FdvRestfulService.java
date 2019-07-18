@@ -17,6 +17,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.security.KeyStore;
 import java.text.DecimalFormat;
 import java.util.HashMap;
@@ -37,6 +39,7 @@ public class FdvRestfulService extends Service {
     private String mResult = "";
 
     private int mRequestResult = CameraActivityData.RESULT_NONE;
+    private String mRequestResultMsg = null;
     private String mReqRet_faceImg = "";
     private String mReqRet_pic = "";
     private String mReqRet_checkFlag = "";
@@ -224,83 +227,84 @@ public class FdvRestfulService extends Service {
                         noneinfo = "pic";
 
                     // 10E护照阅读器信息
-                    if(requestJSON.has("cardType"))
-                        info.ReadedCardType = requestJSON.getString("cardType");
                     if(requestJSON.has("oriimage"))
                         info.oriimage = requestJSON.getString("oriimage");
+
+                    if(requestJSON.has("cardType"))
+                        info.ReadedCardType = URLDecoder.decode(requestJSON.getString("cardType"),"utf-8");
                     if(requestJSON.has("cardName"))
-                        info.name = requestJSON.getString("cardName");//二代证通用信息
+                        info.name = URLDecoder.decode(requestJSON.getString("cardName"),"utf-8");//二代证通用信息
                     if(requestJSON.has("RFIDMRZ"))
-                        info.RFIDMRZ = requestJSON.getString("RFIDMRZ");
+                        info.RFIDMRZ = URLDecoder.decode(requestJSON.getString("RFIDMRZ"),"utf-8");
                     if(requestJSON.has("LocalName"))
-                        info.LocalName = requestJSON.getString("LocalName");
+                        info.LocalName = URLDecoder.decode(requestJSON.getString("LocalName"),"utf-8");
                     if(requestJSON.has("OCRMRZ"))
-                        info.OCRMRZ = requestJSON.getString("OCRMRZ");
+                        info.OCRMRZ = URLDecoder.decode(requestJSON.getString("OCRMRZ"),"utf-8");
                     if(requestJSON.has("EngName"))
-                        info.EngName = requestJSON.getString("EngName");
+                        info.EngName = URLDecoder.decode(requestJSON.getString("EngName"),"utf-8");
                     if(requestJSON.has("POBPinyin"))
-                        info.POBPinyin = requestJSON.getString("POBPinyin");
+                        info.POBPinyin = URLDecoder.decode(requestJSON.getString("POBPinyin"),"utf-8");
                     if(requestJSON.has("Gender"))
-                        info.sex = requestJSON.getString("Gender");//二代证通用信息
+                        info.sex = URLDecoder.decode(requestJSON.getString("Gender"),"utf-8");//二代证通用信息
                     if(requestJSON.has("IssuePlacePinyin"))
-                        info.IssuePlacePinyin = requestJSON.getString("IssuePlacePinyin");
+                        info.IssuePlacePinyin = URLDecoder.decode(requestJSON.getString("IssuePlacePinyin"),"utf-8");
                     if(requestJSON.has("DOB"))
-                        info.DOB = requestJSON.getString("DOB");
+                        info.DOB = URLDecoder.decode(requestJSON.getString("DOB"),"utf-8");
                     if(requestJSON.has("IDCardNo"))
-                        info.IDCardNo = requestJSON.getString("IDCardNo");
+                        info.IDCardNo = URLDecoder.decode(requestJSON.getString("IDCardNo"),"utf-8");
                     if(requestJSON.has("Birthday"))
-                        info.birthdate = requestJSON.getString("Birthday");//二代证通用信息
+                        info.birthdate = URLDecoder.decode(requestJSON.getString("Birthday"),"utf-8");//二代证通用信息
                     if(requestJSON.has("Minzu"))
-                        info.ethnicgroup = requestJSON.getString("Minzu");//二代证通用信息
+                        info.ethnicgroup = URLDecoder.decode(requestJSON.getString("Minzu"),"utf-8");//二代证通用信息
                     if(requestJSON.has("PassportMRZ"))
-                        info.PassportMRZ = requestJSON.getString("PassportMRZ");
+                        info.PassportMRZ = URLDecoder.decode(requestJSON.getString("PassportMRZ"),"utf-8");
                     if(requestJSON.has("Address"))
-                        info.address = requestJSON.getString("Address");//二代证通用信息
+                        info.address = URLDecoder.decode(requestJSON.getString("Address"),"utf-8");//二代证通用信息
                     if(requestJSON.has("ValidDate"))
-                        info.ValidDate = requestJSON.getString("ValidDate");
+                        info.ValidDate = URLDecoder.decode(requestJSON.getString("ValidDate"),"utf-8");
                     if(requestJSON.has("IDNo")) {
-                        info.idcard_id = requestJSON.getString("IDNo");//二代证通用信息
+                        info.idcard_id = URLDecoder.decode(requestJSON.getString("IDNo"),"utf-8");//二代证通用信息
                         if(info.idcard_id.equals(""))
                             info.idcard_id = "000000181801010002";
                     }
                     if(requestJSON.has("IssueState"))
-                        info.IssueState = requestJSON.getString("IssueState");
+                        info.IssueState = URLDecoder.decode(requestJSON.getString("IssueState"),"utf-8");
                     if(requestJSON.has("SelfDefineInfo"))
-                        info.SelfDefineInfo = requestJSON.getString("SelfDefineInfo");
+                        info.SelfDefineInfo = URLDecoder.decode(requestJSON.getString("SelfDefineInfo"),"utf-8");
                     if(requestJSON.has("EngSurname"))
-                        info.EngSurname = requestJSON.getString("EngSurname");
+                        info.EngSurname = URLDecoder.decode(requestJSON.getString("EngSurname"),"utf-8");
                     if(requestJSON.has("POB"))
-                        info.POB = requestJSON.getString("POB");
+                        info.POB = URLDecoder.decode(requestJSON.getString("POB"),"utf-8");
                     if(requestJSON.has("EngFirstname"))
-                        info.EngFirstname = requestJSON.getString("EngFirstname");
+                        info.EngFirstname = URLDecoder.decode(requestJSON.getString("EngFirstname"),"utf-8");
                     if(requestJSON.has("CardNoMRZ"))
-                        info.CardNoMRZ = requestJSON.getString("CardNoMRZ");
+                        info.CardNoMRZ = URLDecoder.decode(requestJSON.getString("CardNoMRZ"),"utf-8");
                     if(requestJSON.has("MRZ1"))
-                        info.MRZ1 = requestJSON.getString("MRZ1");
+                        info.MRZ1 = URLDecoder.decode(requestJSON.getString("MRZ1"),"utf-8");
                     if(requestJSON.has("CardNo"))
-                        info.CardNo = requestJSON.getString("CardNo");
+                        info.CardNo = URLDecoder.decode(requestJSON.getString("CardNo"),"utf-8");
                     if(requestJSON.has("MRZ2"))
-                        info.MRZ2 = requestJSON.getString("MRZ2");
+                        info.MRZ2 = URLDecoder.decode(requestJSON.getString("MRZ2"),"utf-8");
                     if(requestJSON.has("CardType"))
-                        info.CardType = requestJSON.getString("CardType");
+                        info.CardType = URLDecoder.decode(requestJSON.getString("CardType"),"utf-8");
                     if(requestJSON.has("Nationality"))
-                        info.Nationality = requestJSON.getString("Nationality");
+                        info.Nationality = URLDecoder.decode(requestJSON.getString("Nationality"),"utf-8");
                     if(requestJSON.has("ChnName"))
-                        info.ChnName = requestJSON.getString("ChnName");
+                        info.ChnName = URLDecoder.decode(requestJSON.getString("ChnName"),"utf-8");
                     if(requestJSON.has("PassportNo"))
-                        info.PassportNo = requestJSON.getString("PassportNo");
+                        info.PassportNo = URLDecoder.decode(requestJSON.getString("PassportNo"),"utf-8");
                     if(requestJSON.has("ValidDateTo"))
-                        info.ValidDateTo = requestJSON.getString("ValidDateTo");
+                        info.ValidDateTo = URLDecoder.decode(requestJSON.getString("ValidDateTo"),"utf-8");
                     if(requestJSON.has("BirthPlace"))
-                        info.BirthPlace = requestJSON.getString("BirthPlace");
+                        info.BirthPlace = URLDecoder.decode(requestJSON.getString("BirthPlace"),"utf-8");
                     if(requestJSON.has("MRZ3"))
-                        info.MRZ3 = requestJSON.getString("MRZ3");
+                        info.MRZ3 = URLDecoder.decode(requestJSON.getString("MRZ3"),"utf-8");
                     if(requestJSON.has("IssuePlace"))
-                        info.issuing_authority = requestJSON.getString("IssuePlace");//二代证通用信息
+                        info.issuing_authority = URLDecoder.decode(requestJSON.getString("IssuePlace"),"utf-8");//二代证通用信息
                     if(requestJSON.has("ExchangeCardTimes"))
-                        info.ExchangeCardTimes = requestJSON.getString("ExchangeCardTimes");
+                        info.ExchangeCardTimes = URLDecoder.decode(requestJSON.getString("ExchangeCardTimes"),"utf-8");
                     if(requestJSON.has("IssueDate")) {
-                        String IssueDate = requestJSON.getString("IssueDate");
+                        String IssueDate = URLDecoder.decode(requestJSON.getString("IssueDate"),"utf-8");
                         String[] dates = IssueDate.split("-");
                         if(dates.length == 2) {
                             info.idcard_issuedate = dates[0];//二代证通用信息
@@ -308,13 +312,15 @@ public class FdvRestfulService extends Service {
                         }
                     }
                     if(requestJSON.has("FprInfo"))
-                        info.FprInfo = requestJSON.getString("FprInfo");//二代证信息，但普通模式未使用
+                        info.FprInfo = URLDecoder.decode(requestJSON.getString("FprInfo"),"utf-8");//二代证信息，但普通模式未使用
 
 
 
                     if(!flag10E)
                         info.idcard_id = "000000181801010002";
                 } catch (JSONException e){
+                    e.printStackTrace();
+                } catch (UnsupportedEncodingException e){
                     e.printStackTrace();
                 }
 
@@ -400,7 +406,7 @@ public class FdvRestfulService extends Service {
     }
 
     public void setRequestResult(String camera_photo,String idcard_photo,
-                                 int result, double sim) {
+                                 int result, String resultMsg, double sim) {
 
         if(result == CameraActivityData.RESULT_PASS)
             mReqRet_checkFlag = "1";
@@ -415,6 +421,7 @@ public class FdvRestfulService extends Service {
         DecimalFormat decimalFormat=new DecimalFormat(".00");
         mReqRet_compareValue = decimalFormat.format(sim);
 
+        mRequestResultMsg = resultMsg;
         mRequestResult = result; // 必须在最后设置，否则前面设置的变量会有读写冲突
     }
 

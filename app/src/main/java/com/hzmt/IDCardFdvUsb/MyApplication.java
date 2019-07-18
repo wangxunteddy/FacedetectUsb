@@ -20,8 +20,8 @@ public class MyApplication extends Application {
 
     public static String myIPAddress = "";
     public static AiFdrScPkg AiFdrScIns = null;
-    public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
-    //public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
+    //public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
+    public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/calcsimilarity";
     //public static String idcardfdvUrl = "http://192.168.1.201:8004/idcardfdv";
     public static String idcardfdvUrl_img = "https://118.31.14.72:8004/idcardfdv";
@@ -43,7 +43,7 @@ public class MyApplication extends Application {
     
     // debug and test
     public static byte[] TestImageData = null;
-    public static int idcardfdv_requestType = 1;    // feat fdv
+    public static int idcardfdv_requestType = 0;    // img fdv
     public static boolean idcardfdv_subCameraEnable = false;
     public static boolean DebugNoIDCardReader = false;
 
