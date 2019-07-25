@@ -27,8 +27,8 @@ public class CameraActivityData {
 
     public static double SimThreshold = 0.79;
 
-    //public static final byte[] fdvlock = new byte[0];  // 特别的instance变量，充当同步锁
-    public static final byte[] AiFdrSclock = new byte[0];  // 特别的instance变量，充当同步锁
+    public static final byte[] IPReportLock = new byte[0];  // 特别的instance变量，充当同步锁
+    public static final byte[] AiFdrScLock = new byte[0];  // 特别的instance变量，充当同步锁
 
     public static final int RESULT_NONE = -2;
     public static final int RESULT_FAILED = -1;
@@ -68,4 +68,8 @@ public class CameraActivityData {
     // resume_work相关
     public static Handler ResumeWorkHandler = null;
     public static Runnable ResumeWorkRunnable = null;
+
+    // 航信对接相关
+    public static String HX_IPAddress = "";
+    public static boolean HX_runOnStart = true;
 }

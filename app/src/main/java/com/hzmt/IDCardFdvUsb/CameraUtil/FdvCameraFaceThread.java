@@ -174,7 +174,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             CameraActivityData.CameraImageFeat = "";
             if(1 == MyApplication.idcardfdv_requestType && !CameraActivityData.idcardfdv_NoIDCardMode) {
                 // image feat
-                synchronized(CameraActivityData.AiFdrSclock) {
+                synchronized(CameraActivityData.AiFdrScLock) {
                     long stime = System.currentTimeMillis();
                     boolean cleanImg = CameraActivityData.idcardfdv_RequestMode;
                     CameraActivityData.CameraImageFeat = MyApplication.AiFdrScIns.get_camera_feat2(face,cleanImg);

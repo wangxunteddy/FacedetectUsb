@@ -3,12 +3,17 @@
 #include <cpprest/uri.h>
 #include <cpprest/http_listener.h>
 #include <cpprest/asyncrt_utils.h>
+#include <cpprest/http_client.h>
+#include <mutex> 
+
+#include "AESEncryptor.h"
 
 #pragma comment(lib,"ws2_32.lib")
 
 using namespace web;
 using namespace http;
 using namespace utility;
+using namespace web::http::client;
 using namespace http::experimental::listener;
 //using namespace std;
 
@@ -22,13 +27,25 @@ bool brun = false;
 
 SERVICE_STATUS servicestatus;
 SERVICE_STATUS_HANDLE hstatus;
-class CommandHandler;
-CommandHandler* pCmdHandler = 0;
+
+// listener
+http_listener* pBindIDListener = NULL;
+http_listener* pGetIPListener = NULL;
+http_listener* pGetLastFDVListener = NULL;
+
+
+std::string AESKEY = "13c16d397ca54dd4af91a9fa4a0d0c22";
+AesEncryptor* pAesE = NULL;
+
+std::mutex mtx;
 std::map<std::string, std::string> IPMap;
 //std::string IPAddress = "";
+std::string strModulePath = "";
 
 int WriteToLog(const char* str);
+void saveConfig();
 
+void InitWork();
 void IPReceiveWork();
 void IPReportWork();
 
@@ -36,52 +53,113 @@ void WINAPI ServiceMain(int argc, char** argv);
 
 void WINAPI CtrlHandler(DWORD request);
 
-class CommandHandler
-{
-public:
-	CommandHandler() {}
-	~CommandHandler() { m_listener.close(); }
-	CommandHandler(utility::string_t url);
-	pplx::task<void> open() { return m_listener.open(); }
-	pplx::task<void> close() { return m_listener.close(); }
-private:
-	void handle_get_or_post(http_request message);
-	http_listener m_listener;
-};
-
-CommandHandler::CommandHandler(utility::string_t url) : m_listener(url)
-{
-//	m_listener.support(methods::GET, std::bind(&CommandHandler::handle_get_or_post, this, std::placeholders::_1));
-	m_listener.support(methods::POST, std::bind(&CommandHandler::handle_get_or_post, this, std::placeholders::_1));
-}
-
-void CommandHandler::handle_get_or_post(http_request message)
+// 修改绑定ID
+void Callback_bindID(http_request message)
 {
 //	ucout << "Method: " << message.method() << std::endl;
 //	ucout << "URI: " << http::uri::decode(message.relative_uri().path()) << std::endl;
 //	ucout << "Query: " << http::uri::decode(message.relative_uri().query()) << std::endl << std::endl;
 
-	std::string ProductSn;
-	ProductSn.clear();
+	std::string deviceID;
+	deviceID.clear();
 	const json::value& jval = message.extract_json().get();
 	const web::json::object& jobj = jval.as_object();
-	if (jval.has_field(U("ProductSn"))) {
-		utility::string_t str = jobj.at(L"ProductSn").as_string();
-		ProductSn = utility::conversions::to_utf8string(str);
+	if (jval.has_field(U("FDVDeviceID"))) {
+		utility::string_t str = jobj.at(L"FDVDeviceID").as_string();
+		deviceID = utility::conversions::to_utf8string(str);
+		mtx.lock();
+		IPMap.clear();
+		IPMap.insert(std::pair<std::string, std::string>(deviceID, "")); // IP初始化为空
+		saveConfig();
+		mtx.unlock();
+		message.reply(status_codes::OK, "Success");
 	}
+	else {
+		message.reply(status_codes::OK, "");
+	}
+};
 
+// 获取IP
+void Callback_getIP(http_request message)
+{
+	//	ucout << "Method: " << message.method() << std::endl;
+	//	ucout << "URI: " << http::uri::decode(message.relative_uri().path()) << std::endl;
+	//	ucout << "Query: " << http::uri::decode(message.relative_uri().query()) << std::endl << std::endl;
+	
 	std::string replymsg = "";
-	if (ProductSn.size() == 0 && IPMap.size() == 1) {
-		// 未指定sn且仅有一台IP记录
+	mtx.lock();
+	if (IPMap.size() > 0) {
 		replymsg = IPMap.begin()->second;
 	}
-	else if(ProductSn.size() > 0 && IPMap.size() > 0) {
-		auto iter = IPMap.find(ProductSn);
-		if (iter != IPMap.end())
-			replymsg = iter->second;
-	}
+	mtx.unlock();
 	message.reply(status_codes::OK, replymsg);
 };
+
+// 获取最后识别信息
+void Callback_getLastFDV(http_request message)
+{
+	//	ucout << "Method: " << message.method() << std::endl;
+	//	ucout << "URI: " << http::uri::decode(message.relative_uri().path()) << std::endl;
+	//	ucout << "Query: " << http::uri::decode(message.relative_uri().query()) << std::endl << std::endl;
+
+	std::string deviceIP = "";
+	mtx.lock();
+	if (IPMap.size() > 0) {
+		deviceIP = IPMap.begin()->second;
+	}
+	mtx.unlock();
+	if (deviceIP.length() == 0) {
+		// error
+		json::value respJSON = json::value::object();
+		respJSON[U("err_code")] = json::value::string(utility::conversions::to_string_t("-1"));
+		respJSON[U("err_msg")] = json::value::string(utility::conversions::to_string_t(U("目标IP地址未知!")));
+		
+		http_response resp; 
+		resp.headers().add(utility::conversions::to_string_t("Access-Control-Allow-Origin"), 
+			utility::conversions::to_string_t("*")); //设置跨域
+		resp.set_body(respJSON);
+		resp.set_status_code(status_codes::NotFound);
+		message.reply(resp);
+		return;
+	}
+
+	std::string url = "http://" + deviceIP + ":8010/retrieveidfvinfo";
+	utility::string_t urlstr = utility::conversions::to_string_t(url);
+	http::uri uri = http::uri(urlstr);
+	http_client client(uri);
+	web::http::http_request getRequest;
+	getRequest.set_method(methods::GET);
+	try {
+		Concurrency::task<web::http::http_response> getTask = client.request(getRequest);
+		http_response resp = getTask.get();
+		message.reply(resp);
+	}
+	catch (const std::exception &e) {
+		(void)e;
+		json::value respJSON = json::value::object();
+		respJSON[U("err_code")] = json::value::string(utility::conversions::to_string_t("-1"));
+		respJSON[U("err_msg")] = json::value::string(utility::conversions::to_string_t(U("未知错误!")));
+		
+		http_response resp;
+		resp.headers().add(utility::conversions::to_string_t("Access-Control-Allow-Origin"),
+			utility::conversions::to_string_t("*")); //设置跨域
+		resp.set_body(respJSON);
+		resp.set_status_code(status_codes::ExpectationFailed);
+		message.reply(resp);
+	}
+};
+
+std::string ExtractFilePath(const std::string& szFile)
+{
+	if (szFile == "")
+		return "";
+
+	size_t idx = szFile.find_last_of("\\:");
+
+	if (-1 == idx)
+		return "";
+	return std::string(szFile.begin(), szFile.begin() + idx + 1);
+}
 
 int WriteToLog(const char* str)
 {
@@ -124,6 +202,7 @@ void WINAPI ServiceMain(int argc, char** argv)
 	SetServiceStatus(hstatus, &servicestatus);
 
 	//在此处添加你自己希望服务做的工作，在这里我做的工作是获得当前可用的物理和虚拟内存信息
+	InitWork();
 	IPReportWork();
 	IPReceiveWork();
 
@@ -168,32 +247,96 @@ std::vector<std::string> split(std::string strtem, char a)
 	return strvec;
 }
 
-void analyseReceiveMsg(char* msg)
+void saveConfig()
 {
-	std::string msgstr = msg;
-	std::string ProductSn, IPAddress;
-	ProductSn.clear();
+	// 保存IPMap
+	std::ofstream saveFile(strModulePath + "config.txt");
+	if (IPMap.size() == 0) {
+		saveFile << "FDVDeviceID:" << std::endl;
+		saveFile << "IP:" << std::endl;
+	}
+	else {
+		for (auto iter = IPMap.begin(); iter != IPMap.end(); iter++) {
+			saveFile << "FDVDeviceID:" << iter->first << std::endl;
+			saveFile << "IP:" << pAesE->EncryptString(iter->second) << std::endl;
+		}
+	}
+	saveFile.close();
+}
+
+void analyseReceiveMsg(char* msg, int msgLen)
+{
+	char* decByte = (char*)pAesE->DecryptByte(msg, msgLen);
+	std::string msgstr = decByte;
+	std::string DeviceID, IPAddress;
+	DeviceID.clear();
 	IPAddress.clear();
 	std::vector<std::string> s1,s2;
 	s1 = split(msgstr, ';');
-	if (s1.size() == 2) {
-		s2 = split(s1[0], ':');
-		if (s2.size() == 2 && strcmp(s2[0].c_str(),"ProductSn") == 0 && strcmp(s2[1].c_str(),"null") != 0) {
-			ProductSn = s2[1];
+	if (s1.size() == 3) {
+		if (strcmp(s1[0].c_str(),"null") != 0) {
+			DeviceID = s1[0];
 		}
-		s2 = split(s1[1], ':');
-		if (s2.size() == 2 && strcmp(s2[0].c_str(),"IPAddress") == 0) {
-			IPAddress = s2[1];
-		}
+		IPAddress = s1[2];
 	}
 
-	if (ProductSn.size() > 0 && IPAddress.size() > 0) {
-		auto iter = IPMap.find(ProductSn);
+	if (DeviceID.size() > 0 && IPAddress.size() > 0) {
+		mtx.lock();
+		auto iter = IPMap.find(DeviceID);
 		if (iter != IPMap.end()) {
-			iter->second = IPAddress;
+			if (strcmp(iter->second.c_str(), IPAddress.c_str()) != 0) {
+				iter->second = IPAddress;
+				saveConfig();
+			}
 		}
-		else
-			IPMap.insert(std::pair<std::string, std::string>(ProductSn, IPAddress));
+		else {
+			// 非绑定设备的信息忽略
+		//	IPMap.insert(std::pair<std::string, std::string>(DeviceID, IPAddress));
+		}
+		mtx.unlock();
+	}
+}
+
+
+
+void InitWork()
+{
+	char szPath[1024] = { 0 };
+	GetModuleFileName(NULL, szPath, MAX_PATH);
+	strModulePath = ExtractFilePath(szPath);
+
+	// aes
+	pAesE = new AesEncryptor((unsigned char*)AESKEY.c_str());
+
+	// config
+	IPMap.clear();
+	std::string deviceID = "";
+	std::string deviceIP = "";
+	std::ifstream saveFile(strModulePath + "config.txt");
+	if (!saveFile.is_open()) {
+		saveConfig();
+	}
+	else {
+		std::string line;
+		while (std::getline(saveFile, line)) {
+			std::istringstream is_line(line);
+			std::string key;
+			if (std::getline(is_line, key, ':')) {
+				std::string value;
+				if (std::getline(is_line, value)) {
+					if (key == "FDVDeviceID") {
+						deviceID = value;
+						std::transform(deviceID.begin(), deviceID.end(), deviceID.begin(), ::toupper);
+					}
+					if (key == "IP")
+						deviceIP = pAesE->DecryptString(value);
+				}
+			}
+		}
+		if (deviceID.length() > 0) {
+			IPMap.insert(std::pair<std::string, std::string>(deviceID, deviceIP));
+		}
+		saveFile.close();
 	}
 }
 
@@ -241,7 +384,6 @@ void IPReceiveWork()
 
 	int nAddrLen = sizeof(SOCKADDR);
 	char buff[512] = "";       //定义接收缓冲区
-	IPMap.clear();
 	brun = true;
 	WriteToLog("init OK!");
 	while (brun) {
@@ -255,7 +397,7 @@ void IPReceiveWork()
 		}
 
 		buff[nSendSize] = '\0';   //字符串终止
-		analyseReceiveMsg(buff);
+		analyseReceiveMsg(buff, nSendSize);
 		WriteToLog(buff);
 		//printf("%s\n", IPAddress.c_str());
 	}
@@ -265,27 +407,97 @@ void IPReportWork()
 {
 	try
 	{
-		utility::string_t address = U("http://localhost:55531");
+		utility::string_t address = U("http://localhost:55531/bindID");
 		uri_builder uri(address);
 		auto addr = uri.to_uri().to_string();
-		pCmdHandler = new CommandHandler(addr);
-		pCmdHandler->open().wait();
+		pBindIDListener = new http_listener(addr);
+		pBindIDListener->support(methods::POST, &Callback_bindID);
+		pBindIDListener->open().wait();
 	}
 	catch (std::exception& ex)
 	{
-		if (pCmdHandler) {
-			delete pCmdHandler;
-			pCmdHandler = 0;
+		if (pBindIDListener) {
+			pBindIDListener->close().wait();
+			delete pBindIDListener;
+			pBindIDListener = 0;
+		}
+		std::string exstr = "Exception: ";
+		exstr += ex.what();
+		WriteToLog(exstr.c_str());
+	}
+
+	try
+	{
+		utility::string_t address = U("http://localhost:55531/getIP");
+		uri_builder uri(address);
+		auto addr = uri.to_uri().to_string();
+		pGetIPListener = new http_listener(addr);
+		pGetIPListener->support(methods::POST, &Callback_getIP);
+		pGetIPListener->open().wait();
+	}
+	catch (std::exception& ex)
+	{
+		if (pGetIPListener) {
+			pGetIPListener->close().wait();
+			delete pGetIPListener;
+			pGetIPListener = 0;
 		}
 		std::string exstr = "Exception: ";
 		exstr+=ex.what();
 		WriteToLog(exstr.c_str());
 	}
 
-	
+	try
+	{
+		utility::string_t address = U("http://localhost:55531/retrieveidfvinfo");
+		uri_builder uri(address);
+		auto addr = uri.to_uri().to_string();
+		pGetLastFDVListener = new http_listener(addr);
+		pGetLastFDVListener->support(methods::GET, &Callback_getLastFDV);
+		pGetLastFDVListener->open().wait();
+	}
+	catch (std::exception& ex)
+	{
+		if (pGetLastFDVListener) {
+			pGetLastFDVListener->close().wait();
+			delete pGetLastFDVListener;
+			pGetLastFDVListener = 0;
+		}
+		std::string exstr = "Exception: ";
+		exstr += ex.what();
+		WriteToLog(exstr.c_str());
+	}
 	return;
 }
 
+void releaseWork()
+{
+	if (pAesE) {
+		delete pAesE;
+		pAesE = NULL;
+	}
+	if (pBindIDListener) {
+		pBindIDListener->close().wait();
+		delete pBindIDListener;
+		pBindIDListener = NULL;
+	}
+	if (pGetIPListener) {
+		pGetIPListener->close().wait();
+		delete pGetIPListener;
+		pGetIPListener = NULL;
+	}
+	if (pGetLastFDVListener) {
+		pGetLastFDVListener->close().wait();
+		delete pGetLastFDVListener;
+		pGetLastFDVListener = NULL;
+	}
+}
+
+void Byte2Hex(const unsigned char* src, int len, char* dest) {
+	for (int i = 0; i<len; ++i) {
+		sprintf_s(dest + i * 2, 3, "%02X", src[i]);
+	}
+}
 void main()
 {
 //*
@@ -296,6 +508,10 @@ void main()
 	entrytable[1].lpServiceProc = NULL;
 	StartServiceCtrlDispatcher(entrytable);
 //*/
+
+//	InitWork();
 //	IPReportWork();
 //	IPReceiveWork();
+
+	//releaseWork();
 }

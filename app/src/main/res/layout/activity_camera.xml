@@ -203,6 +203,19 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <TextView
+        android:id="@+id/notused"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textSize="24sp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <LinearLayout
         android:id="@+id/att_layout"
         android:layout_width="293dp"
@@ -358,6 +371,7 @@
             android:singleLine="false"
             android:text="Debug:"
             android:textSize="14sp" />
+
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

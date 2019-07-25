@@ -28,6 +28,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.view.View;
 import android.hardware.Camera;
@@ -56,6 +57,7 @@ import com.hzmt.IDCardFdvUsb.SubActivity;
 //import com.invs.UsbBase;
 import com.hzmt.IDCardFdvUsb.util.AppUtils;
 import com.hzmt.IDCardFdvUsb.util.AssetExtractor;
+import com.hzmt.IDCardFdvUsb.util.ConfigUtil;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
 import com.hzmt.IDCardFdvUsb.util.NV21ToBitmap;
 import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
@@ -185,6 +187,24 @@ public class CameraActivity extends AppCompatActivity{
         mInfoLayout = new InfoLayout(this);
 
         mHelpImg = findViewById(R.id.helpimg);
+
+        // config信息
+        ConfigUtil.readConfigFile(this);
+
+        // 设备ID
+        String deviceID = ConfigUtil.getValue(ConfigUtil.KEY_DEVICE_ID);
+        if(deviceID == null || deviceID.equals("")){
+            // 去掉生成，改为注册时获取
+            //deviceID = WorkUtils.createDeviceID(this);
+            //ConfigUtil.setValue(ConfigUtil.KEY_DEVICE_ID, deviceID);
+            //ConfigUtil.writeConfigFile();
+        }
+        else{
+            TextView didView = findViewById(R.id.version_str);
+            String text = getText(R.string.ver_str).toString() + "-" + deviceID;
+            didView.setText(text);
+        }
+
 
         // 公安提醒画面
         setAttLayout();
@@ -334,6 +354,7 @@ public class CameraActivity extends AppCompatActivity{
         // handler for fdv work
         mFdvWorkHandler = new FdvWorkHandler(this);
         IdcardFdvRegister.checkRegister(this);
+        WorkUtils.startIPReportThread(this);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED){
@@ -461,6 +482,17 @@ public class CameraActivity extends AppCompatActivity{
         mHelpImg.post(new Runnable(){
             @Override
             public void run() {
+                if(visibility == View.VISIBLE){
+                    // 检查deviceID
+                    TextView didView = findViewById(R.id.version_str);
+                    String ver = getText(R.string.ver_str).toString();
+                    String deviceID = ConfigUtil.getValue(ConfigUtil.KEY_DEVICE_ID);
+                    if(deviceID  !=null && !deviceID.equals("") &&
+                        didView.getText().toString().equals(ver)){
+                        String text = ver + "-" + deviceID;
+                        didView.setText(text);
+                    }
+                }
                 mHelpImg.setVisibility(visibility);
             }
         });
@@ -508,41 +540,7 @@ public class CameraActivity extends AppCompatActivity{
         });
     }
     private void setAttLayout(){
-        String police = "武汉市公安局";
-        try {
-            String attcfg = getExternalFilesDir(null).getAbsolutePath()
-                    + File.separator + "config.txt";
-            File cfgfile = new File(attcfg);
-            if(!cfgfile.exists()){
-                FileOutputStream outputStream = new FileOutputStream(cfgfile);
-                String initstr = "police:武汉市公安局";
-                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
-                bw.write(initstr);
-                bw.newLine();
-                bw.close();
-            }
-            else {
-                FileInputStream inputStream = new FileInputStream(cfgfile);
-                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-                String lineTxt = null;
-                while ((lineTxt = br.readLine()) != null) {
-                    String[] names = lineTxt.split(":");
-                    if(names[0].charAt(0) == '\uFEFF')  // unicode编码处理
-                        names[0] = names[0].substring(1);
-                    if (names.length >= 2) {
-                        if(names[0].equals("police"))
-                            police = names[1];
-                    }
-                }
-                br.close();
-            }
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String police = ConfigUtil.getValue(ConfigUtil.KEY_POLICE);
         mAttLayout = findViewById(R.id.att_layout);
         ViewGroup.LayoutParams attLP = mAttLayout.getLayoutParams();
         attLP.width = (int)(CameraActivityData.CameraActivity_width * 0.4);

@@ -31,6 +31,7 @@ import android.text.Spannable;
 import android.text.Selection;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -364,6 +365,11 @@ public class IdcardFdvRegister {
                             SecretKey = resultJSON.getString("SecretKey");
                         else
                             SecretKey = "ZTlmMjU2ODk1MTE4NGM3NGEyYWQ3ZDM4";
+                        if(resultJSON.has("DeviceSerialNo")){
+                            String deviceID = resultJSON.getString("DeviceSerialNo");
+                            ConfigUtil.setValue(ConfigUtil.KEY_DEVICE_ID, deviceID);
+                            ConfigUtil.writeConfigFile();
+                        }
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();

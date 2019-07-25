@@ -218,7 +218,7 @@ public class FdvWorkThread extends Thread {
                                         = object.getString("idcard_issuedate");
                             if(object.has("idcard_expiredate"))
                                 CameraActivityData.FdvIDCardInfos.idcard_expiredate
-                                        = object.getString("idcard_expiredate");
+                                        = B64Util.base64ToString(object.getString("idcard_expiredate"));
                             //if(object.has("idcard_id"))
                             //    CameraActivityData.FdvIDCardInfos.idcard_id = object.getString("idcard_id");
                             if(object.has("ethnicgroup"))
@@ -300,7 +300,10 @@ public class FdvWorkThread extends Thread {
                             }
                             // 设置最后识别信息
                             cbctx.mFdvSrv.setIDCardInfos(CameraActivityData.FdvIDCardInfos);
-                            cbctx.mFdvSrv.setResult(simPass);
+                            cbctx.mFdvSrv.setLastResult(CameraActivityData.CameraImage,
+                                                        CameraActivityData.PhotoImage,
+                                                        sim * 100,
+                                                        simPass);
                         }
                         saveUpload = true;
                     }
@@ -425,7 +428,7 @@ public class FdvWorkThread extends Thread {
                                 CameraActivityData.CameraFaceB64.equals(""));
                 if(cflag){
                     //long stime = System.currentTimeMillis();
-                    synchronized(CameraActivityData.AiFdrSclock) {
+                    synchronized(CameraActivityData.AiFdrScLock) {
                         CameraActivityData.CameraFaceB64 = MyApplication.AiFdrScIns.
                                 ai_fdr_get_face(CameraActivityData.CameraFaceRect, 95, true);
                     }

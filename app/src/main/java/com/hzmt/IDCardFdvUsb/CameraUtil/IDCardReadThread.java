@@ -236,7 +236,7 @@ public class IDCardReadThread extends Thread {
             if(1 == MyApplication.idcardfdv_requestType) {
                 long stime = System.currentTimeMillis();
                 Rect faceRect = new Rect();
-                synchronized (CameraActivityData.AiFdrSclock) {
+                synchronized (CameraActivityData.AiFdrScLock) {
                     CameraActivityData.PhotoImageFeat = MyApplication.AiFdrScIns.get_photo_feat(CameraActivityData.PhotoImage, faceRect);
 
                     //MyApplication.AiFdrScIns.dectect_photo_face(CameraActivityData.PhotoImage, faceRect);

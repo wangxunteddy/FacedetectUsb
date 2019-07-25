@@ -57,9 +57,11 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
         //boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
         boolean detect = false;
 
-        // 检查IP报告情况
-        if(MyApplication.myIPAddress.equals(""))
-            WorkUtils.reportIPChange(activity);
+        // 航信对接，如执行至此仍未上报则上报一次
+        if(CameraActivityData.HX_runOnStart) {
+            WorkUtils.HX_DeviceReg(activity);
+            CameraActivityData.HX_runOnStart = false;
+        }
 
         // 检查和重新初始化阅读器
         CameraActivityData.CheckIDCardReaderCnt++;

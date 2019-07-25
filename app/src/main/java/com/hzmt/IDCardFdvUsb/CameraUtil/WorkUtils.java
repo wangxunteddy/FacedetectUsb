@@ -13,47 +13,78 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.util.AESUtils;
+import com.hzmt.IDCardFdvUsb.util.ConfigUtil;
+import com.hzmt.IDCardFdvUsb.util.HttpUtil;
 import com.hzmt.IDCardFdvUsb.util.IdcardFdvRegister;
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 import com.hzmt.IDCardFdvUsb.util.SystemUtil;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class WorkUtils {
-    public static boolean reportIPChange(Context cotntext){
-        String newIp = SystemUtil.getIpAddress(cotntext);
-        if(newIp == null){
-            // 无网络连接
-            return false;
-        }
-
-        //if(!newIp.equals(MyApplication.myIPAddress)){
-        {
-            String sn = IdcardFdvRegister.getProductSn();
-            String sendstr = "ProductSn:";
-            if(sn == null) {
-                //sendstr += "null;";
+    public static boolean reportIPChange(Context context){
+        synchronized (CameraActivityData.IPReportLock) {
+            String newIP = SystemUtil.getIpAddress(context);
+            if (newIP == null) {
+                // 无网络连接
                 return false;
             }
-            else {
-                sn = sn.replace("-", ""); // 去'-'
-                sendstr += (sn + ";");
-            }
-            sendstr+=("IPAddress:"+newIp);
 
-            if(SystemUtil.sendUDPBrocast(sendstr.getBytes(), 55530)){
-                MyApplication.myIPAddress = newIp;
-                return true;
+            //if(!newIp.equals(MyApplication.myIPAddress)){
+            {
+                String did = ConfigUtil.getValue(ConfigUtil.KEY_DEVICE_ID);
+                String sendStr = "";
+                if (did == null || did.equals("")) {
+                    return false;
+                }
+
+                sendStr += (did + ";");
+
+                // dummy data
+                // 31: 使AES加密填充时只补1个字节，尽量减小数据长度。
+                int dummyLen = 31 - (did.length() + newIP.length() + 2);
+                if(dummyLen < 0)
+                    dummyLen = 0;
+                StringBuilder dummy = new StringBuilder();
+                Random random = new Random();
+                for(int i = 0; i < dummyLen; i++)
+                    dummy.append(random.nextInt(10));
+                dummy.append(";");
+                sendStr += dummy;
+
+                sendStr += newIP;
+                //String crypt_sendStr = AESUtils.encrypt(sendStr, MyApplication.IPReport_password);
+                byte[] crypt_sendByte = null;
+                try {
+                    crypt_sendByte = AESUtils.encrypt(sendStr.getBytes("UTF-8"), MyApplication.IPReport_password);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+                if (crypt_sendByte!=null && SystemUtil.sendUDPBrocast(crypt_sendByte, 55530)) {
+                    return true;
+                }
             }
+
+            return false;
         }
-
-        return false;
     }
 
     public static void startIPReportThread(final Context context){
@@ -73,36 +104,118 @@ public class WorkUtils {
     }
 
 
-    public static void setNetworkChangeWork(final Context context){
+    public static void setNetworkChangeWork(final CameraActivity activity){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager connectivityManager = (ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE);
             if (connectivityManager != null) {
                 connectivityManager.requestNetwork(new NetworkRequest.Builder().build(), new ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(Network network) {
                         super.onAvailable(network);
-                        WorkUtils.reportIPChange(context);
+                        WorkUtils.reportIPChange(activity);
+                        WorkUtils.HX_DeviceReg(activity);
                     }
 
                     @Override
                     public void onLost(Network network) {
                         super.onLost(network);
-                        WorkUtils.reportIPChange(context);
+                        WorkUtils.reportIPChange(activity);
+                        WorkUtils.HX_DeviceReg(activity);
                     }
 
                     @Override
                     public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {
                         super.onLinkPropertiesChanged(network, linkProperties);
-                        WorkUtils.reportIPChange(context);
+                        WorkUtils.reportIPChange(activity);
+                        WorkUtils.HX_DeviceReg(activity);
                     }
 
                     @Override
                     public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
                         super.onCapabilitiesChanged(network, networkCapabilities);
-                        WorkUtils.reportIPChange(context);
+                        WorkUtils.reportIPChange(activity);
+                        WorkUtils.HX_DeviceReg(activity);
                     }
                 });
             }
+        }
+    }
+
+    public static String createDeviceID(Context context) {
+        String newDID = "";
+        String ipStr = SystemUtil.getIpAddress(context);
+        if (ipStr == null) {
+            // 无网络连接
+            int rint = new Random().nextInt(744)+256;
+            newDID += String.format(Locale.CHINA, "%03d", rint);
+        } else{
+            String[] nums = ipStr.split("\\.");
+            newDID += String.format(Locale.CHINA, "%03d", Integer.valueOf(nums[nums.length - 1]));
+        }
+
+        long cTime = System.currentTimeMillis();
+        newDID += String.format(Locale.CHINA, "%09d",cTime);
+
+        newDID += String.format(Locale.CHINA, "%04d", new Random().nextInt(10000));
+
+        return newDID;
+    }
+
+    public static void HX_DeviceReg(final CameraActivity activity){
+        final String url = ConfigUtil.getValue(ConfigUtil.KEY_HX_REG_ADDRESS);
+        if(url == null || url.equals(""))
+            return;     // 未读取config或无需注册
+
+        final String deviceID = ConfigUtil.getValue(ConfigUtil.KEY_HX_DEVICE_ID);
+        final String stationID = ConfigUtil.getValue(ConfigUtil.KEY_HX_STATION_ID);
+        if(deviceID == null || deviceID.equals("") || stationID == null || stationID.equals("")) {
+            activity.runOnUiThread(new Runnable() {
+                public void run() {
+                    String errMsg = "IP上报缺少信息！";
+                    ShowToastUtils.showToast(activity, errMsg, Toast.LENGTH_SHORT);
+                }
+            });
+            return;
+        }
+
+        final String newIP = SystemUtil.getIpAddress(activity);
+        if (newIP == null) {
+            return;         // 无网络连接
+        }
+
+        if(!newIP.equals(CameraActivityData.HX_IPAddress)) {
+            //IP上报
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        JSONObject object = null;
+                        Map<String, String> map = new HashMap<>();
+                        map.put("deviceid", deviceID);
+                        map.put("deviceip", newIP);
+                        map.put("stationid", stationID);
+                        object = new JSONObject(map);
+                        JSONObject resultJSON = HttpUtil.JsonObjectRequest(object,url);
+                        if (resultJSON.has("msg")){
+                            final String msg = resultJSON.getString("msg");
+                            if(msg.equals("0")){
+                                // 成功
+                                CameraActivityData.HX_IPAddress = newIP;
+                            }
+                            else{
+                                activity.runOnUiThread(new Runnable() {
+                                    public void run() {
+                                        ShowToastUtils.showToast(activity, msg, Toast.LENGTH_SHORT);
+                                    }
+                                });
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }.start();
+            CameraActivityData.HX_runOnStart = false; // 标记至少已经执行了一次。
         }
     }
 

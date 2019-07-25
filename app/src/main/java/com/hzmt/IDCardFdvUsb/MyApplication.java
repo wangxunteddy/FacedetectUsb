@@ -18,7 +18,6 @@ import java.io.ByteArrayOutputStream;
 public class MyApplication extends Application {
     public static RequestQueue requestQueue;
 
-    public static String myIPAddress = "";
     public static AiFdrScPkg AiFdrScIns = null;
     //public static String idcardfdvUrl = "https://118.31.14.72:8004/calcsimilarity";
     public static String idcardfdvUrl = "https://118.31.14.72:8004/idcardfdv";
@@ -28,6 +27,7 @@ public class MyApplication extends Application {
     public static String fdvCompleteUrl = "https://118.31.14.72:8004/idfdv_complete";
     public static ByteArrayOutputStream certstream_baos = null;
     public static final String config_password = "d178f4caf81f4120ba096df47cc25fed";
+    public static final String IPReport_password = "13c16d397ca54dd4af91a9fa4a0d0c22";
     public static Long idcardfdvTotalCnt = null;
     public static Long idcardfdvCameraCnt = null;
     public static Long idcardfdvStepCnt = null;

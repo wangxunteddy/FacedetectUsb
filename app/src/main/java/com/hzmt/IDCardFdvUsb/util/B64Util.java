@@ -18,13 +18,16 @@ public class B64Util {
      * @return
      */
     public static String bitmapToBase64(Bitmap bitmap,Bitmap.CompressFormat format) {
+        return B64Util.bitmapToBase64(bitmap,format,100);
+    }
 
+    public static String bitmapToBase64(Bitmap bitmap,Bitmap.CompressFormat format, int quality) {
         String result = null;
         ByteArrayOutputStream baos = null;
         try {
             if (bitmap != null) {
                 baos = new ByteArrayOutputStream();
-                bitmap.compress(format, 100, baos);
+                bitmap.compress(format, quality, baos);
 
                 baos.flush();
                 baos.close();
@@ -47,7 +50,6 @@ public class B64Util {
         }
         return result;
     }
-
     /**
      * base64转为bitmap
      * @param base64Data

@@ -3,10 +3,13 @@ package com.hzmt.IDCardFdvUsb.CameraUtil;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.hzmt.IDCardFdvUsb.util.B64Util;
+import com.hzmt.IDCardFdvUsb.util.SystemUtil;
 import com.koushikdutta.async.http.Headers;
 import com.koushikdutta.async.http.server.AsyncHttpServer;
 import com.koushikdutta.async.http.server.AsyncHttpServerRequest;
@@ -37,6 +40,9 @@ public class FdvRestfulService extends Service {
 
     private IDCardInfos mInfos;
     private String mResult = "";
+    private String mRet_faceImg = "";   // 摄像头照片
+    private String mRet_pic = "";       // 身份证照片
+    private String mRet_compareValue = "";
 
     private int mRequestResult = CameraActivityData.RESULT_NONE;
     private String mRequestResultMsg = null;
@@ -68,7 +74,7 @@ public class FdvRestfulService extends Service {
 
                 info_map.put("name", mInfos.name);
                 info_map.put("issuing_authority", mInfos.issuing_authority);
-                info_map.put("idcard_photo", mInfos.idcard_photo);
+                //info_map.put("idcard_photo", mInfos.idcard_photo);
                 info_map.put("birthdate", mInfos.birthdate);
                 info_map.put("sex", mInfos.sex);
                 info_map.put("idcard_issuedate", mInfos.idcard_issuedate);
@@ -77,6 +83,9 @@ public class FdvRestfulService extends Service {
                 info_map.put("ethnicgroup", mInfos.ethnicgroup);
                 info_map.put("address", mInfos.address);
 
+                info_map.put("idcard_photo", mRet_pic);
+                info_map.put("onsitepicture", mRet_faceImg);
+                info_map.put("compareValue", mRet_compareValue);
                 info_map.put("verification_result", mResult);
                 String uuidStr = UUID.randomUUID().toString();
                 info_map.put("uuid", uuidStr);
@@ -398,11 +407,17 @@ public class FdvRestfulService extends Service {
         }
     }
 
-    public void setResult(boolean pass) {
+    public void setLastResult(Bitmap camera_photo, Bitmap idcard_photo, double sim, boolean pass) {
         if(pass)
             mResult = "pass";
         else
             mResult = "failure";
+
+        Bitmap s_camera_photo = SystemUtil.scaleBitmap(camera_photo,0.5f,false);
+        mRet_faceImg = "data:image/jpeg;base64," + B64Util.bitmapToBase64(s_camera_photo, Bitmap.CompressFormat.JPEG, 50);
+        mRet_pic = "data:image/jpeg;base64," + B64Util.bitmapToBase64(idcard_photo, Bitmap.CompressFormat.JPEG);
+        DecimalFormat decimalFormat=new DecimalFormat(".00");
+        mRet_compareValue = decimalFormat.format(sim);
     }
 
     public void setRequestResult(String camera_photo,String idcard_photo,
