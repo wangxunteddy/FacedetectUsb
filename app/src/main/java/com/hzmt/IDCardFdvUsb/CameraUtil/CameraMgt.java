@@ -20,9 +20,11 @@ import android.hardware.Camera;
 
 import android.util.Log;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.hzmt.IDCardFdvUsb.MainActivity;
 import com.hzmt.IDCardFdvUsb.MyApplication;
+import com.hzmt.IDCardFdvUsb.util.ShowToastUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -69,6 +71,7 @@ public class CameraMgt {
     public int getCurrentSubCameraId() {
         return mCamIdxSub;
     }
+    public boolean isCameraPreviewStarted(){return isPreview;}
 
     public SurfaceView getCameraView() {
         return mSurfaceView;
@@ -115,6 +118,16 @@ public class CameraMgt {
     private void startCamera() {
         if (isPreview)
             return;
+
+        int cameraCnt = Camera.getNumberOfCameras();
+        if(cameraCnt < 1){
+            // 无可用摄像头
+            return;
+        }
+        else if(MyApplication.idcardfdv_subCameraEnable && cameraCnt<2){
+            // 要求双目，摄像头不足
+            return;
+        }
 
         try {
             // Camera.open() 默认返回的后置摄像头信息

@@ -57,12 +57,6 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
         //boolean detect = MyApplication.AiFdrScIns.dectect_camera_face(fullPreviewBm, face);
         boolean detect = false;
 
-        // 航信对接，如执行至此仍未上报则上报一次
-        if(CameraActivityData.HX_runOnStart) {
-            WorkUtils.HX_DeviceReg(activity);
-            CameraActivityData.HX_runOnStart = false;
-        }
-
         // 检查和重新初始化阅读器
         CameraActivityData.CheckIDCardReaderCnt++;
         if(CameraActivityData.CheckIDCardReaderCnt >= 1){
@@ -137,6 +131,9 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
                     }
                 }
 
+                // 检查因恰巧超时没完成的任务
+                checkRedo();
+
                 // 开始验证处理线程
                 CameraActivityData.resume_work = false;
                 mFdvWorkTh = new FdvWorkThread(activity, activity.mFdvWorkHandler);
@@ -163,6 +160,21 @@ public class DetectFaceThread extends AsyncTask<Void, Integer, Rect>{
                     String msg = "已连接身份证阅读器!";
                     ShowToastUtils.showToast(activity, msg, Toast.LENGTH_SHORT);
                 }
+                break;
+        }
+    }
+
+    private void checkRedo(){
+        switch(CameraActivityData.redo_info){
+            case CameraActivityData.REDO_IDCARD_MODE:
+                break;
+            case CameraActivityData.REDO_NOIDCARD_MODE:
+                CameraActivityData.idcardfdv_NoIDCardMode = true;
+                break;
+            case CameraActivityData.REDO_REQUEST_MODE:
+                CameraActivityData.idcardfdv_RequestMode = true;
+                break;
+            default:
                 break;
         }
     }

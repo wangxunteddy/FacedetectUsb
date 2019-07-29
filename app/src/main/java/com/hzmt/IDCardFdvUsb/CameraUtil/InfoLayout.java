@@ -39,6 +39,7 @@ public class InfoLayout {
 
     private EditText mIDCardNoInput;
     private Button mIDCardNoBtn;
+    public static boolean mIDCardNoInputting = false;
 
     private TextView mResultSimilarity;
 
@@ -76,6 +77,7 @@ public class InfoLayout {
             //            return;
 
                     if(hasFocus) {
+                        mIDCardNoInputting = true;
                         WorkUtils.keepBright(activity);
                     }
                     else {
@@ -86,6 +88,7 @@ public class InfoLayout {
                             imm.hideSoftInputFromWindow(v.getWindowToken(),0);
                         }
 
+                        mIDCardNoInputting = false;
                         WorkUtils.startBrightnessWork(activity);
                     }
             }

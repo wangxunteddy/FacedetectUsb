@@ -339,7 +339,8 @@ public class FdvWorkThread extends Thread {
                                       CameraActivityData.idcardfdv_RequestMode
                                      );
                 if(clean_flag){
-                    CameraActivityData.FdvIDCardInfos.idcard_id = "";
+                    //CameraActivityData.FdvIDCardInfos.idcard_id = "";
+                    CameraActivityData.FdvIDCardInfos.clean();
                 }
 
                 //===================

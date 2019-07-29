@@ -216,7 +216,7 @@ public class FdvCameraFaceThread extends AsyncTask<Void, Integer, Rect>{
             CameraActivityData.capture_face_enable = false;
             CameraActivityData.idcardfdv_cameraState = CAMERA_FACE_ALL_OK;
 
-            if(CameraActivityData.idcardfdv_NoIDCardMode) {
+            if(CameraActivityData.idcardfdv_NoIDCardMode && !InfoLayout.mIDCardNoInputting) {
                 // 无证模式，重启定时复位
                 if(activity!=null)
                     WorkUtils.startBrightnessWork(activity);

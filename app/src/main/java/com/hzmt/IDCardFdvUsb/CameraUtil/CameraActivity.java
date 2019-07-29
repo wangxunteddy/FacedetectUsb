@@ -264,6 +264,29 @@ public class CameraActivity extends AppCompatActivity{
 
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        // 界面加载完成后处理
+        if (hasFocus) {
+            if(!mCameraMgt.isCameraPreviewStarted()){
+                ShowToastUtils.showToast(this, "摄像头初始化失败！", Toast.LENGTH_SHORT);
+            }
+
+            // 航信对接，如执行至此仍未上报则上报一次
+            if(CameraActivityData.HX_runOnStart) {
+                WorkUtils.HX_DeviceReg(this);
+                CameraActivityData.HX_runOnStart = false;
+            }
+        }
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        Log.e("onResume","onResume");
+    }
+
+
     private ServiceConnection mSrvConn = new ServiceConnection(){
         @Override
         public void onServiceConnected(ComponentName name, IBinder service)
@@ -399,6 +422,15 @@ public class CameraActivity extends AppCompatActivity{
             //String pres = s.width+" x " +s.height;
             //ShowToastUtils.showToast(CameraActivity.this, pres, Toast.LENGTH_LONG);
 
+            // 切入后台处理
+            //boolean backflag = MyApplication.moveTaskToBack_enable &&       // 允许切换至后台
+            //                    CameraActivityData.detect_face_enable &&    // 识别处理入口，需截断其他识别处理。
+            //                    CameraActivityData.moveTaskToBack_doMove;   // 转入后台的启动标识
+
+            //if(backflag){
+            //    CameraActivity.this.moveTaskToBack(false);
+            //    return;
+            //}
 
             if(CameraActivityData.detect_face_enable){
                 DetectFaceThread detectFaceTh = new DetectFaceThread(CameraActivity.this,
@@ -588,20 +620,21 @@ public class CameraActivity extends AppCompatActivity{
     }
 
 
-    public void backToHelp()
-    {
+    public void backToHelp() {
         mDebugLayout.addText("back to Help!\n");
         //CameraActivityData.idcardfdv_cameraState = FdvCameraFaceThread.CAMERA_FACE_STATE_NONE;
         //CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_STATE_NONE;
         mInfoLayout.resetCameraImage();
-        mInfoLayout.resetIdcardPhoto();
         mInfoLayout.setResultSimilarity("--%");
-        setHelpImgVisibility(View.VISIBLE);
-        setAttLayOutVisibility(View.INVISIBLE);
+        if (CameraActivityData.redo_info < 0){
+            mInfoLayout.resetIdcardPhoto();
+            setHelpImgVisibility(View.VISIBLE);
+            setAttLayOutVisibility(View.INVISIBLE);
+        }
         CameraActivityData.CameraImage = null;
         CameraActivityData.CameraImageFeat = "";
         CameraActivityData.idcardfdv_NoIDCardMode = false;
-        if(CameraActivityData.idcardfdv_RequestMode && mFdvSrv != null) {
+        if(CameraActivityData.idcardfdv_RequestMode && CameraActivityData.redo_info < 0 && mFdvSrv != null) {
             if(CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_NOT_PASS &&
                     CameraActivityData.idcardfdv_result != CameraActivityData.RESULT_PASS )
             {

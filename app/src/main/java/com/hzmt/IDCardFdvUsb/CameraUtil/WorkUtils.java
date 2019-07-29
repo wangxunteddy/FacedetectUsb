@@ -247,10 +247,9 @@ public class WorkUtils {
 
                     // 仅startBrightnessWork与startResumeWorkTimer时设置true,退回至无人状态
                     CameraActivityData.resume_work = true;
-                    //infoL.resetCameraImage();
-                    //infoL.resetIdcardPhoto();
-                    //infoL.setResultSimilarity("--%");
-                    //infoL.resetResultIcon();
+
+                    // 退到后台
+                    //CameraActivityData.moveTaskToBack_doMove = true;
                 }
             };
         }
@@ -348,4 +347,13 @@ public class WorkUtils {
         }
 
     }
+
+    //================================================
+    // 前后台切换相关
+    public static void startIDCardReadBGThread(){
+
+    }
+
+
+    //================================================
 }

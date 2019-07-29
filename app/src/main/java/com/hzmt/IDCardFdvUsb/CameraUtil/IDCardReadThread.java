@@ -79,13 +79,16 @@ public class IDCardReadThread extends Thread {
             mHandler.sendMessage(msg);
         }
 
+        int redo_info = CameraActivityData.redo_info;
+        CameraActivityData.redo_info = CameraActivityData.REDO_NONE;
         boolean bIDCardNoChange = false;
         while(true){
             // 开始计时
             MyApplication.idcardfdvTotalCnt = System.currentTimeMillis();
             boolean no_read_flag = (MyApplication.DebugNoIDCardReader ||
                                     CameraActivityData.idcardfdv_NoIDCardMode ||
-                                    CameraActivityData.idcardfdv_RequestMode
+                                    CameraActivityData.idcardfdv_RequestMode ||
+                                    redo_info == CameraActivityData.REDO_IDCARD_MODE
                                     );
 
             if(no_read_flag){
@@ -95,14 +98,26 @@ public class IDCardReadThread extends Thread {
                 break;
             }
             else {
-                int iRet = activity.mIDCardReader.Authenticate_IDCard();
+                int iRet;
+                if(CameraActivityData.idcardfdv_WakeUpMode)
+                    iRet = 0;   // 唤醒模式下第一次不读卡。
+                else
+                    iRet = activity.mIDCardReader.Authenticate_IDCard();
 
                 if (0 == iRet) {
-                    Message msg = new Message();
-                    msg.what = IDCARD_CHECK_OK;
-                    mHandler.sendMessage(msg);
 
-                    iRet = activity.mIDCardReader.Read_Content();
+                    if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
+                        Message msg = new Message();
+                        msg.what = IDCARD_CHECK_OK;
+                        mHandler.sendMessage(msg);
+                    }
+
+                    if(CameraActivityData.idcardfdv_WakeUpMode) {
+                        iRet = 0;   // 唤醒模式下第一次不读卡。
+                        CameraActivityData.idcardfdv_WakeUpMode = false;
+                    }
+                    else
+                        iRet = activity.mIDCardReader.Read_Content();
                     if (0 == iRet) {
                         String tmpId = activity.mIDCardReader.GetPeopleIDCode();
                         if (tmpId.equals(CameraActivityData.FdvIDCardInfos.idcard_id) &&
@@ -169,20 +184,29 @@ public class IDCardReadThread extends Thread {
             }
         }
 
-        if(CameraActivityData.idcardfdv_NoIDCardMode && !CameraActivityData.resume_work){
+        if(CameraActivityData.idcardfdv_NoIDCardMode){
             // 无证模式直接返回
             CameraActivityData.FdvIDCardInfos.clean();
             CameraActivityData.PhotoImageData = null;
             CameraActivityData.PhotoImage = null;
             CameraActivityData.PhotoImageFeat = null;
-            Message msg = new Message();
-            msg.what = IDCARD_ALL_OK;
-            mHandler.sendMessage(msg);
+            if(!CameraActivityData.resume_work) {
+                Message msg = new Message();
+                msg.what = IDCARD_ALL_OK;
+                mHandler.sendMessage(msg);
+                CameraActivityData.redo_info = CameraActivityData.REDO_NONE;
+            }
+            else{
+                // 正常处理但恰巧超时，设置重新处理
+                CameraActivityData.redo_info = CameraActivityData.REDO_NOIDCARD_MODE;
+            }
             return;
         }
 
         // 身份证照片处理
         boolean data_error = false;
+        if(redo_info == CameraActivityData.REDO_IDCARD_MODE)
+            bIDCardNoChange = true; // 重新处理时视为相同身份证
         if(!bIDCardNoChange) {
             if(MyApplication.DebugNoIDCardReader){
                 //======================== test
@@ -270,17 +294,27 @@ public class IDCardReadThread extends Thread {
             CameraActivityData.PhotoImageFeat = "";
             CameraActivityData.FdvIDCardInfos.clean();
 
-            if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
+            if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新, 也不做重新处理
                 Message msg = new Message();
                 msg.what = IDCARD_ERR_READERR;
                 mHandler.sendMessage(msg);
             }
+            CameraActivityData.redo_info = CameraActivityData.REDO_NONE;
         }
         else{
             if(!CameraActivityData.resume_work) {   // 如已超时，不发送更新
                 Message msg = new Message();
                 msg.what = IDCARD_ALL_OK;
                 mHandler.sendMessage(msg);
+                CameraActivityData.redo_info = CameraActivityData.REDO_NONE;
+            }
+            else{
+                // 全部正常读取但恰巧超时的情况下，设置重新处理
+                if(CameraActivityData.idcardfdv_RequestMode)
+                    CameraActivityData.redo_info = CameraActivityData.REDO_REQUEST_MODE;
+                else
+                    CameraActivityData.redo_info = CameraActivityData.REDO_IDCARD_MODE;
+                //Log.e("REDO","REDO!!!");
             }
         }
     }

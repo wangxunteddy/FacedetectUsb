@@ -58,7 +58,9 @@ public class CameraActivityData {
     public static boolean idcardfdv_RequestMode = false;
     public static boolean idcardfdv_NoIDCardMode = false;
     public static boolean idcardfdv_IDCardNoReady = false;
-    public static boolean detect_face_enable = true;
+    public static boolean idcardfdv_WakeUpMode = false; // 从后台唤醒处理模式
+    //public static boolean moveTaskToBack_doMove = false;
+    public static boolean detect_face_enable = true;    // 作为整个识别处理的入口
     public static boolean capture_face_enable = false;
     public static boolean capture_subface_enable = false;
     public static boolean capture_subface_done = false;
@@ -68,6 +70,12 @@ public class CameraActivityData {
     // resume_work相关
     public static Handler ResumeWorkHandler = null;
     public static Runnable ResumeWorkRunnable = null;
+    public static final int REDO_NONE = -1;
+    public static final int REDO_IDCARD_MODE = 10;
+    public static final int REDO_NOIDCARD_MODE = 20;
+    public static final int REDO_REQUEST_MODE = 30;
+    public static int redo_info = REDO_NONE;
+
 
     // 航信对接相关
     public static String HX_IPAddress = "";
