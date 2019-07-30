@@ -14,7 +14,8 @@
     		<td style="border-left:0;border-top:0;">
     			　　<input id="Button1" type="button" value="打开设备" onclick="btnLoadOCRdll_Click()" />
     			　　<input id="Button2" type="button" value="关闭设备" onclick="btnUnloadOCRdll_Click()"/>
-    					　　　　　　　验证设备注册码：<input id="FDVProductSn" type="text" value="" />
+    					　　　　　　　　　验证设备ID：<input id="FDVDeviceID" type="text" value="" />
+    		　<input id="bindID" type="button" value="设置" onclick="btnBindID_Click()" />
     					<br>
     					<br>
     					<form name="lightform" method="post" action="">
@@ -709,6 +710,39 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
         ret = controldemo.btnUnloadOCRdll_Click();
         alert(ret);
     }
+    
+    function btnBindID_Click(){
+        var deviceID = document.getElementById("FDVDeviceID").value;
+        if(deviceID === "")
+        	return;
+        
+        document.getElementById("bindID").disabled = "true";
+        var urlIPAddress = "http://localhost:55531/bindID";
+        var IDData = {};
+        IDData["FDVDeviceID"] = deviceID;
+        $.ajax({
+					type: "POST",
+					url: urlIPAddress,
+					contentType: "application/json;charset=utf-8",
+					dataType: "text",
+					data: JSON.stringify(IDData),
+					error: function(XMLHttpRequest, textStatus, errorThrown) {
+                        alert("网络错误!");
+                        document.getElementById("bindID").removeAttribute("disabled");
+                    }
+				}).done(function(obj){
+					if(obj === ""){
+						alert("设置失败！");
+					}
+					else if(obj === "Success"){
+						alert("设置成功！");
+					}
+					else
+						alert("未知错误！");
+					
+					document.getElementById("bindID").removeAttribute("disabled");
+				});
+    }
 
     function btnReadCard_Click()
     {
@@ -724,6 +758,7 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
         	return;
         	
         document.getElementById("readcard").disabled = "true";
+        document.getElementById("bindID").disabled = "true";
         	
         var data={};
         
@@ -998,10 +1033,10 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
     
     function fdv_work(data)
     {
-    	var urlIPAddress = "http://localhost:55531";
+    	var urlIPAddress = "http://localhost:55531/getIP";
     	var SnData = {};
-    	var snstr = document.getElementById("FDVProductSn").value;
-    	SnData["ProductSn"] = snstr.split("-").join("");	// 去掉-
+    	//var snstr = document.getElementById("FDVProductSn").value;
+    	//SnData["ProductSn"] = snstr.split("-").join("");	// 去掉-
     	$.ajax({
 				type: "POST",
 				url: urlIPAddress,
@@ -1011,11 +1046,13 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
 				error: function(XMLHttpRequest, textStatus, errorThrown) {
                         alert("无法获取验证设备IP！");
                         document.getElementById("readcard").removeAttribute("disabled");
+                        document.getElementById("bindID").removeAttribute("disabled");
                     }
 			}).done(function(obj){
 				if(obj === ""){
 					alert("无法获取验证设备IP！");
 					document.getElementById("readcard").removeAttribute("disabled");
+					document.getElementById("bindID").removeAttribute("disabled");
 				}
 				else{
 					var urlFdvSrv = "http://"+obj+":55532/Ver10/Face_Instruct";
@@ -1028,11 +1065,13 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
 						error: function(XMLHttpRequest, textStatus, errorThrown) {
                         alert("网络错误！");
                         document.getElementById("readcard").removeAttribute("disabled");
+                        document.getElementById("bindID").removeAttribute("disabled");
                     }
 					}).done(function(obj) {
 						if(typeof obj["err_code"]!='undefined' && obj["err_code"]!="0"){
 							document.getElementById("compareValue").innerHTML = obj["err_msg"];
 							document.getElementById("readcard").removeAttribute("disabled");
+							document.getElementById("bindID").removeAttribute("disabled");
 							return;
 						}
 						document.getElementById("compareValue").innerHTML=obj["compareValue"]+"%";
@@ -1043,6 +1082,7 @@ KuDgdbhKCfmluNx/8FWxA/4vbP7p6JXD5S7mVU8GwP8CR7oVxtuQs94AAAAASUVORK5CYII=" hidden
 							document.getElementById("retImg").src = document.getElementById("retImg_notpass_preload").src;
 							
 						document.getElementById("readcard").removeAttribute("disabled");
+						document.getElementById("bindID").removeAttribute("disabled");
 					});
 				}
 			});

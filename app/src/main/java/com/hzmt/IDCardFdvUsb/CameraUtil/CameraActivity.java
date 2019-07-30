@@ -664,7 +664,7 @@ public class CameraActivity extends AppCompatActivity{
             // 不在帮助画面时不执行
             if(mFdvSrv != null)
                 mFdvSrv.setRequestResult("","",
-                        CameraActivityData.RESULT_FAILED,"设备正忙，请稍候重试。", 0.0);
+                        CameraActivityData.RESULT_FAILED,"设备正忙，请稍后重试。", 0.0);
             return;
         }
 
