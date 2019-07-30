@@ -59,7 +59,7 @@ public class CameraActivityData {
     public static boolean idcardfdv_NoIDCardMode = false;
     public static boolean idcardfdv_IDCardNoReady = false;
     public static boolean idcardfdv_WakeUpMode = false; // 从后台唤醒处理模式
-    //public static boolean moveTaskToBack_doMove = false;
+    public static boolean moveTaskToBack_doMove = false;
     public static boolean detect_face_enable = true;    // 作为整个识别处理的入口
     public static boolean capture_face_enable = false;
     public static boolean capture_subface_enable = false;

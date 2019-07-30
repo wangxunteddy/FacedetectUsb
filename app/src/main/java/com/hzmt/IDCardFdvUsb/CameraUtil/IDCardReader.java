@@ -213,6 +213,20 @@ public class IDCardReader extends UsbSam{
         return -1;
     }
 
+    // READER_INVS系列仅SelCardCmd()命令
+    public int Authenticate_IDCard_SelCardCmd(){
+        if(mReaderType != READER_INVS)
+            return -1;
+
+        int iRet = this.SelCardCmd();
+        if (129 == iRet)
+            return -7;  // 选卡失败，无卡或已读
+        else if (144 != iRet)
+            return -1;  // 选卡失败，错误
+        else
+            return 0;
+    }
+
     public int GetAuthInterval(){
         int interval = 300; // ms
         if(mReaderType == READER_MKR){

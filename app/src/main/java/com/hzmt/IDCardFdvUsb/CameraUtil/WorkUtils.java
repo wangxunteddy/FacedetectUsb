@@ -1,6 +1,7 @@
 package com.hzmt.IDCardFdvUsb.CameraUtil;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
@@ -32,6 +33,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
@@ -249,7 +251,7 @@ public class WorkUtils {
                     CameraActivityData.resume_work = true;
 
                     // 退到后台
-                    //CameraActivityData.moveTaskToBack_doMove = true;
+                    CameraActivityData.moveTaskToBack_doMove = true;
                 }
             };
         }
@@ -350,10 +352,84 @@ public class WorkUtils {
 
     //================================================
     // 前后台切换相关
-    public static void startIDCardReadBGThread(){
+    private static Thread thIDCardReadBGThread = null;
+    private static boolean BGThreadRun = false;
 
+    public static boolean isIDCardReadBGThreadRunning(){
+        return (thIDCardReadBGThread != null);
     }
 
+    // 清理退到后台后的读卡线程
+    public static void clearIDCardReadBGThread(){
+        BGThreadRun = false;
+        thIDCardReadBGThread = null;
+    }
 
+    // 启动后台读卡线程并切入后台
+    public static void startIDCardReadBGThread(final CameraActivity activity){
+        if(thIDCardReadBGThread != null)
+            return;
+
+        BGThreadRun = true;
+        thIDCardReadBGThread = new Thread() {
+            @Override
+            public void run() {
+                while (BGThreadRun) {
+                    if(CameraActivityData.idcardfdv_RequestMode){
+                        break;
+                    }
+
+                    // 阅读器读卡
+                    if (!activity.mIDCardReader.IsReaderConnected()) {
+                        // 没有阅读器或已断开
+                        activity.mIDCardReader.CloseIDCardReader();
+                        activity.mIDCardReader.OpenIDCardReader(activity);
+                    } else {
+                        int iRet;
+                        if (activity.mIDCardReader.GetReaderType() == IDCardReader.READER_INVS) {
+                            // READER_INVS系列避免二次调用FindCardCmd()
+                            iRet = activity.mIDCardReader.Authenticate_IDCard_SelCardCmd();
+                        } else
+                            iRet = activity.mIDCardReader.Authenticate_IDCard();
+
+                        if (0 == iRet) {
+                            iRet = activity.mIDCardReader.Read_Content();
+                            if (0 == iRet) {
+                                // 成功读卡
+                                CameraActivityData.idcardfdv_WakeUpMode = true; // 唤醒模式读卡
+                                break;
+                            }
+                        }
+                    }
+
+                    try {
+                        int interval = activity.mIDCardReader.GetAuthInterval();
+                        Thread.sleep(interval);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                // 退出循环即恢复至前台
+                CameraActivityData.moveTaskToBack_doMove = false;
+                BGThreadRun = false;
+                WorkUtils.moveToFront(activity);
+            }
+        };
+        thIDCardReadBGThread.start();
+        activity.moveTaskToBack(true); // 切入后台
+    }
+
+    // 恢复至前台
+    public static void moveToFront(final CameraActivity activity){
+        ActivityManager manager = (ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> recentTasks = manager.getRunningTasks(Integer.MAX_VALUE);
+        for (int i = 0; i < recentTasks.size(); i++){
+            // bring to front
+            if (recentTasks.get(i).baseActivity.toShortString().contains("com.hzmt.IDCardFdvUsb/com.hzmt.IDCardFdvUsb.CameraUtil.CameraActivity")){
+                manager.moveTaskToFront(recentTasks.get(i).id, ActivityManager.MOVE_TASK_WITH_HOME);
+            }
+        }
+    }
     //================================================
 }

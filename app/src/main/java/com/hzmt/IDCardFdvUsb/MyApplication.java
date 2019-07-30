@@ -45,8 +45,8 @@ public class MyApplication extends Application {
     public static Long accessControlCnt = null;
 
     // 功能切换
-    public static boolean idcardfdv_subCameraEnable = false;
-    //public static boolean moveTaskToBack_enable = true;
+    public static boolean idcardfdv_subCameraEnable = false;    // 红外
+    public static boolean moveTaskToBack_enable = false;        // 自动前后台切换
 
     // debug and test
     public static byte[] TestImageData = null;

@@ -15,6 +15,7 @@ import android.graphics.Point;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
@@ -283,7 +284,10 @@ public class CameraActivity extends AppCompatActivity{
     @Override
     protected void onResume(){
         super.onResume();
-        Log.e("onResume","onResume");
+        if(WorkUtils.isIDCardReadBGThreadRunning()) {
+            WorkUtils.clearIDCardReadBGThread();
+            WorkUtils.startBrightnessWork(this);
+        }
     }
 
 
@@ -423,14 +427,15 @@ public class CameraActivity extends AppCompatActivity{
             //ShowToastUtils.showToast(CameraActivity.this, pres, Toast.LENGTH_LONG);
 
             // 切入后台处理
-            //boolean backflag = MyApplication.moveTaskToBack_enable &&       // 允许切换至后台
-            //                    CameraActivityData.detect_face_enable &&    // 识别处理入口，需截断其他识别处理。
-            //                    CameraActivityData.moveTaskToBack_doMove;   // 转入后台的启动标识
+            boolean bgflag = MyApplication.moveTaskToBack_enable &&       // 允许切换至后台
+                                CameraActivityData.detect_face_enable &&    // 识别处理入口，需截断其他识别处理。
+                                CameraActivityData.moveTaskToBack_doMove && // 转入后台的启动标识
+                                CameraActivityData.redo_info < 0;           // 无重新处理的任务
 
-            //if(backflag){
-            //    CameraActivity.this.moveTaskToBack(false);
-            //    return;
-            //}
+            if(bgflag){
+                WorkUtils.startIDCardReadBGThread(CameraActivity.this);
+                return;
+            }
 
             if(CameraActivityData.detect_face_enable){
                 DetectFaceThread detectFaceTh = new DetectFaceThread(CameraActivity.this,
