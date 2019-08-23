@@ -10,7 +10,9 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
+import android.os.StatFs;
 import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
@@ -306,6 +308,10 @@ public class WorkUtils {
         if(bitmap == null)
             return;
 
+        long freeSize = WorkUtils.getAvailableInternalMemorySize();
+        if(freeSize < 100 * 1024 * 1024)    // 100M
+            return;
+
         // 图片存放路径
         String path = ctx.getFilesDir().getAbsolutePath();
         String uploadDir = path + "/UPLOAD/";
@@ -329,6 +335,10 @@ public class WorkUtils {
     }
 
     public static void saveUploadBitmapBMP(Context ctx, byte[] data, String prename) {
+        long freeSize = WorkUtils.getAvailableInternalMemorySize();
+        if(freeSize < 100 * 1024 * 1024)    // 100M
+            return;
+
         // 图片存放路径
         String path = ctx.getFilesDir().getAbsolutePath();
         String uploadDir = path + "/UPLOAD/";
@@ -349,6 +359,20 @@ public class WorkUtils {
         }
 
     }
+
+    /**
+     * 获取手机内部剩余存储空间
+     *
+     * @return
+    */
+    public static long getAvailableInternalMemorySize() {
+        File path = Environment.getDataDirectory();
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSizeLong();
+        long availableBlocks = stat.getAvailableBlocksLong();
+        return availableBlocks * blockSize;
+    }
+
 
     //================================================
     // 前后台切换相关

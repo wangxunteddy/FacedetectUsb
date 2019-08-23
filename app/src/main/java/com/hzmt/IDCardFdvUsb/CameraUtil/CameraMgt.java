@@ -167,15 +167,20 @@ public class CameraMgt {
             //========== for SHANGZHU=========
             parameters.setPreviewSize(1280, 720);
             parameters.setPictureSize(1280, 720);
+            //parameters.set("focal-length","85"); // 焦距。//无效，不支持光学变焦。
             //===============================
             List<String> focusModes = parameters.getSupportedFocusModes();
-            if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            if (focusModes != null && focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
             }
             //List<String> sceneModes=parameters.getSupportedSceneModes();
-            //if (sceneModes.contains(Camera.Parameters.SCENE_MODE_PORTRAIT)) {
+            //if (sceneModes != null && sceneModes.contains(Camera.Parameters.SCENE_MODE_PORTRAIT)) {
             //    parameters.setSceneMode(Camera.Parameters.SCENE_MODE_PORTRAIT);
             //}
+            // 交流电频率
+            List<String> antiBanding = parameters.getSupportedAntibanding();
+            if(antiBanding != null && antiBanding.contains(Camera.Parameters.ANTIBANDING_50HZ))
+                parameters.setAntibanding(Camera.Parameters.ANTIBANDING_50HZ);
 
             mCamera.setParameters(parameters);
             setSuitableSurface(); // 设置绘图窗口尺寸
@@ -202,9 +207,13 @@ public class CameraMgt {
                 parametersSub.setPictureSize(1280, 720);
                 //================================
                 List<String> focusModesSub = parametersSub.getSupportedFocusModes();
-                if (focusModesSub.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-                    parametersSub.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                if (focusModesSub != null && focusModesSub.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+                    parametersSub.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
                 }
+                // 交流电频率
+                List<String> antiBandingSub = parametersSub.getSupportedAntibanding();
+                if(antiBandingSub != null && antiBandingSub.contains(Camera.Parameters.ANTIBANDING_50HZ))
+                    parametersSub.setAntibanding(Camera.Parameters.ANTIBANDING_50HZ);
                 mCameraSub.setParameters(parametersSub);
                 mCameraSub.setPreviewCallback(mCameraFrameWorkSub);
             }
