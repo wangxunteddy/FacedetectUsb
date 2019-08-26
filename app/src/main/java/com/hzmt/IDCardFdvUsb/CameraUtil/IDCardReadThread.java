@@ -120,7 +120,8 @@ public class IDCardReadThread extends Thread {
                         iRet = activity.mIDCardReader.Read_Content();
                     if (0 == iRet) {
                         String tmpId = activity.mIDCardReader.GetPeopleIDCode();
-                        if (tmpId.equals(CameraActivityData.FdvIDCardInfos.idcard_id) &&
+                        if (tmpId != null && !tmpId.equals("") &&
+                                tmpId.equals(CameraActivityData.FdvIDCardInfos.idcard_id) &&
                                 CameraActivityData.PhotoImage != null) {
                             // 相同身份证
                             bIDCardNoChange = true;

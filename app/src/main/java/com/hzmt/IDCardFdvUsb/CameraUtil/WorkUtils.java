@@ -200,7 +200,7 @@ public class WorkUtils {
                         map.put("stationid", stationID);
                         object = new JSONObject(map);
                         JSONObject resultJSON = HttpUtil.JsonObjectRequest(object,url);
-                        if (resultJSON.has("msg")){
+                        if (resultJSON != null && resultJSON.has("msg")){
                             final String msg = resultJSON.getString("msg");
                             if(msg.equals("0")){
                                 // 成功

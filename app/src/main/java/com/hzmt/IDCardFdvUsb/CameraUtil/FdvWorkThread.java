@@ -391,7 +391,8 @@ public class FdvWorkThread extends Thread {
                         CameraActivityData.idcardfdv_RequestMode
                 );
                 if(clean_flag){
-                    CameraActivityData.FdvIDCardInfos.idcard_id = "";
+                    //CameraActivityData.FdvIDCardInfos.idcard_id = "";
+                    CameraActivityData.FdvIDCardInfos.clean();
                 }
 
                 ShowToastUtils.showToast(cbctx, "网络请求错误！", Toast.LENGTH_SHORT);

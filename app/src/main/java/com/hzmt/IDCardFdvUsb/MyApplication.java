@@ -51,6 +51,7 @@ public class MyApplication extends Application {
     // debug and test
     public static byte[] TestImageData = null;
     public static boolean DebugNoIDCardReader = false;
+    public static int TestImageCnt = 0;
 
     @Override
     public void onCreate() {

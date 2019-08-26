@@ -490,18 +490,18 @@ public class CameraActivity extends AppCompatActivity{
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
             //Log.e("onPictureTaken","Take Picture success!");
-            //Bitmap bm = CameraMgt.getBitmapFromBytes(data, mCameraMgt.getCurrentCameraId(), 4);
+            camera.startPreview();
+            Bitmap bm = CameraMgt.getBitmapFromBytes(data, mCameraMgt.getCurrentCameraId(), 1);
+            WorkUtils.saveUploadBitmap(CameraActivity.this,bm,""+MyApplication.TestImageCnt+"_p.png", Bitmap.CompressFormat.PNG);
+            MyApplication.TestImageCnt++;
             //mInfoLayout.setCameraImage(bm);
 
 
-            Intent intent = new Intent();
-            intent.setClass(CameraActivity.this, SubActivity.class);
-            //intent.putExtra("facedata", data);
-            MyApplication.TestImageData = data;
-            intent.putExtra("cameraid", mCameraMgt.getCurrentCameraId());
-            //setResult(CameraActivityData.REQ_TYPE_REGISTER,intent);
-            startActivity(intent);
-            //CameraActivity.this.finish();
+            //Intent intent = new Intent();
+            //intent.setClass(CameraActivity.this, SubActivity.class);
+            //MyApplication.TestImageData = data;
+            //intent.putExtra("cameraid", mCameraMgt.getCurrentCameraId());
+            //startActivity(intent);
 
             //camera.startPreview();//重新开始预览
 
@@ -631,10 +631,19 @@ public class CameraActivity extends AppCompatActivity{
         //CameraActivityData.idcardfdv_idcardState = IDCardReadThread.IDCARD_STATE_NONE;
         mInfoLayout.resetCameraImage();
         mInfoLayout.setResultSimilarity("--%");
-        if (CameraActivityData.redo_info < 0){
+        if (CameraActivityData.redo_info < 0){  // 无超时重做任务时
             mInfoLayout.resetIdcardPhoto();
             setHelpImgVisibility(View.VISIBLE);
             setAttLayOutVisibility(View.INVISIBLE);
+
+            // 清理身份证号码缓存以避免下次直接使用身份证产生问题
+            boolean clean_flag = (CameraActivityData.idcardfdv_NoIDCardMode ||
+                    CameraActivityData.idcardfdv_RequestMode
+            );
+            if(clean_flag){
+                //CameraActivityData.FdvIDCardInfos.idcard_id = "";
+                CameraActivityData.FdvIDCardInfos.clean();
+            }
         }
         CameraActivityData.CameraImage = null;
         CameraActivityData.CameraImageFeat = "";
