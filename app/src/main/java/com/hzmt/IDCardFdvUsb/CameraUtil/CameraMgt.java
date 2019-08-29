@@ -168,6 +168,7 @@ public class CameraMgt {
             parameters.setPreviewSize(1280, 720);
             parameters.setPictureSize(1280, 720);
             //parameters.set("focal-length","85"); // 焦距。//无效，不支持光学变焦。
+            //parameters.setExposureCompensation(5);  // 曝光补偿
             //===============================
             List<String> focusModes = parameters.getSupportedFocusModes();
             if (focusModes != null && focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {

@@ -531,6 +531,7 @@ public class CameraActivity extends AppCompatActivity{
                     }
                 }
                 mHelpImg.setVisibility(visibility);
+                //mHelpImg.setVisibility(View.INVISIBLE);
             }
         });
     }
