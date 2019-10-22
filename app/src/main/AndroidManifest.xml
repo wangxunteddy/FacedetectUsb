@@ -59,6 +59,9 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".ServicesRunCheckReceiver">
+        </receiver>
+
     </application>
 
 </manifest>

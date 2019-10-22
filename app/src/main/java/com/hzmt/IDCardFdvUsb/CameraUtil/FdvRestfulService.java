@@ -338,6 +338,10 @@ public class FdvRestfulService extends Service {
                     info_map.put("err_code", "400");
                     info_map.put("err_msg", "错误请求!缺少字段"+noneinfo);
                 }
+                else if(info.idcard_photo.equals("") || info.idcard_photo.equals("data:image/png;base64,")){
+                    info_map.put("err_code", "400");
+                    info_map.put("err_msg", "错误请求!无效的照片！");
+                }
                 else{
                     mRequestResult = CameraActivityData.RESULT_NONE;
                     Intent intent = new Intent("com.hzmt.IDCardFdvUsb.FDV_REQUEST");

@@ -1,6 +1,10 @@
 package com.hzmt.IDCardFdvUsb;
 
+import android.app.AlarmManager;
 import android.app.Application;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
 
 import com.android.volley.RequestQueue;
@@ -10,6 +14,8 @@ import com.android.volley.toolbox.Volley;
 import com.hzmt.aifdrsclib.AiFdrScPkg;
 
 import java.io.ByteArrayOutputStream;
+
+import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 
 /**
  * Created by xun on 2017/8/30.
@@ -57,5 +63,11 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         requestQueue = Volley.newRequestQueue(this);
+
+        // 设置系统闹钟检查2个service运行
+        AlarmManager am = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        Intent RunCheckIntent = new Intent(this, ServicesRunCheckReceiver.class);
+        PendingIntent pIntent = PendingIntent.getBroadcast(this, 0, RunCheckIntent, FLAG_UPDATE_CURRENT);
+        am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, 60*1000, 20 * 60 * 1000, pIntent);
     }
 }

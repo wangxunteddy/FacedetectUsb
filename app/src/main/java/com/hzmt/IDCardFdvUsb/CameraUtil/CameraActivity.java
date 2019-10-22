@@ -524,8 +524,7 @@ public class CameraActivity extends AppCompatActivity{
                     TextView didView = findViewById(R.id.version_str);
                     String ver = getText(R.string.ver_str).toString();
                     String deviceID = ConfigUtil.getValue(ConfigUtil.KEY_DEVICE_ID);
-                    if(deviceID  !=null && !deviceID.equals("") &&
-                        didView.getText().toString().equals(ver)){
+                    if(deviceID  !=null && !deviceID.equals("")){
                         String text = ver + "-" + deviceID;
                         didView.setText(text);
                     }
